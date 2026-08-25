@@ -62,6 +62,8 @@ export default function App() {
   }
 
   const [note, setNote] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchLigne, setSearchLigne] = useState("");
 
   useEffect(() => {
     load();
@@ -83,6 +85,20 @@ export default function App() {
   const activeLignes = (lignes || [])
     .filter((l) => l.cahierId === (activeCahier && activeCahier.id))
     .sort((a, b) => (a.date + a.heureDebut).localeCompare(b.date + b.heureDebut));
+
+  const cahiersFiltres = useMemo(
+    () => cahiers.filter((c) => c.nom.toLowerCase().includes(search.trim().toLowerCase())),
+    [cahiers, search]
+  );
+  const lignesFiltrees = useMemo(
+    () =>
+      activeLignes.filter((l) =>
+        `${l.date} ${l.heureDebut} ${l.heureFin} ${l.nombrePersonnes}`
+          .toLowerCase()
+          .includes(searchLigne.trim().toLowerCase())
+      ),
+    [activeLignes, searchLigne]
+  );
 
   const previewTm = tempsMisMin(form.debut, form.fin);
   const previewPers = parseInt(form.personnes, 10);
@@ -254,8 +270,19 @@ export default function App() {
       </header>
 
       <div className="card">
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Rechercher un cahier…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <div className="cahiers">
-          {cahiers.map((c) => (
+          {cahiersFiltres.length === 0 ? (
+            <div className="empty">Aucun cahier trouvé.</div>
+          ) : (
+            cahiersFiltres.map((c) => (
             <div
               key={c.id}
               className={"cahier-btn" + (c.id === (activeCahier && activeCahier.id) ? " active" : "")}
@@ -272,7 +299,7 @@ export default function App() {
                 </button>
               </div>
             </div>
-          ))}
+          )))}
           <button className="cahier-add" onClick={addCahier}>
             + Nouveau cahier
           </button>
@@ -388,9 +415,17 @@ export default function App() {
       <div className="card">
         <div className="table-actions">
           <strong>{activeCahier ? activeCahier.nom : ""} — lignes</strong>
+          <input
+            type="text"
+            placeholder="Filtrer (date, heure, participants)…"
+            value={searchLigne}
+            onChange={(e) => setSearchLigne(e.target.value)}
+          />
         </div>
         {activeLignes.length === 0 ? (
           <div className="empty">Aucune ligne pour ce cahier.</div>
+        ) : lignesFiltrees.length === 0 ? (
+          <div className="empty">Aucun résultat pour cette recherche.</div>
         ) : (
           <div className="table-scroll">
           <table>
@@ -407,7 +442,7 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              {activeLignes.map((l, i) => {
+              {lignesFiltrees.map((l, i) => {
                 const tm = tempsMisMin(l.heureDebut, l.heureFin);
                 const cu = cumulMin(tm, l.nombrePersonnes);
                 return (
