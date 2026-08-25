@@ -2,13 +2,8 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { Cahier, Ligne } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure } from "@/lib/calc";
+import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
-
-const JOURS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
-const MOIS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-const ANNEE_COURANTE = new Date().getFullYear();
-const ANNEES = Array.from({ length: 11 }, (_, i) => String(ANNEE_COURANTE - 5 + i));
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -118,10 +113,11 @@ export default function App() {
     setError("");
     const { date, debut, fin, personnes } = form;
     const pers = parseInt(personnes, 10);
+    const dateNorm = normalizeDate(date);
     const debutNorm = normalizeHeure(debut);
     const finNorm = normalizeHeure(fin);
-    if (!date || !debutNorm || !finNorm) {
-      setError("Date, heure de début et de fin sont obligatoires (ex : 8h30, 20:15, 830).");
+    if (!dateNorm || !debutNorm || !finNorm) {
+      setError("Date, heure de début et de fin sont obligatoires (ex : 25/08/2025, 8h30, 20:15, 830).");
       return;
     }
     if (!pers || pers < 1) {
@@ -136,14 +132,14 @@ export default function App() {
       if (editingId) {
         await api("/api/lignes/" + editingId, {
           method: "PUT",
-          body: JSON.stringify({ date, heureDebut: debutNorm, heureFin: finNorm, nombrePersonnes: pers }),
+          body: JSON.stringify({ date: dateNorm, heureDebut: debutNorm, heureFin: finNorm, nombrePersonnes: pers }),
         });
       } else {
         await api("/api/lignes", {
           method: "POST",
           body: JSON.stringify({
             cahierId: activeCahier.id,
-            date,
+            date: dateNorm,
             heureDebut: debutNorm,
             heureFin: finNorm,
             nombrePersonnes: pers,
@@ -274,46 +270,12 @@ export default function App() {
           <div className="row">
             <div className="field">
               <label>Date</label>
-              <div className="date-selects">
-                <select
-                  aria-label="Jour"
-                  value={form.date.slice(8, 10)}
-                  onChange={(e) => {
-                    const [, mo, y] = form.date.split("-");
-                    setForm({ ...form, date: `${y}-${mo}-${e.target.value}` });
-                  }}
-                >
-                  {JOURS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                <span className="sep">/</span>
-                <select
-                  aria-label="Mois"
-                  value={form.date.slice(5, 7)}
-                  onChange={(e) => {
-                    const [y, , d] = form.date.split("-");
-                    setForm({ ...form, date: `${y}-${e.target.value}-${d}` });
-                  }}
-                >
-                  {MOIS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-                <span className="sep">/</span>
-                <select
-                  aria-label="Année"
-                  value={form.date.slice(0, 4)}
-                  onChange={(e) => {
-                    const [, mo, d] = form.date.split("-");
-                    setForm({ ...form, date: `${e.target.value}-${mo}-${d}` });
-                  }}
-                >
-                  {ANNEES.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
+              <input
+                type="text"
+                placeholder="25/08/2025"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
             </div>
             <div className="field">
               <label>Heure de début</label>

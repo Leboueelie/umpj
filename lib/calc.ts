@@ -30,6 +30,45 @@ export function normalizeHeure(raw: string | null | undefined): string | null {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// Normalise une saisie libre en "YYYY-MM-DD" (ex: 25/08/2025, 2025-08-25, 25082025)
+export function normalizeDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = raw.trim();
+  if (!s) return null;
+  const valid = (y: number, mo: number, d: number) =>
+    y >= 1900 && y <= 2999 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
+
+  // AAAA/MM/JJ ou AAAA-MM-JJ
+  let m = s.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/);
+  if (m) {
+    const y = parseInt(m[1], 10), mo = parseInt(m[2], 10), d = parseInt(m[3], 10);
+    if (valid(y, mo, d))
+      return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  // JJ/MM/AAAA ou JJ/MM/AA
+  m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+  if (m) {
+    const d = parseInt(m[1], 10), mo = parseInt(m[2], 10);
+    const yPart = m[3];
+    const y = yPart.length === 4 ? parseInt(yPart, 10) : 2000 + parseInt(yPart, 10);
+    if (valid(y, mo, d))
+      return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  // 8 chiffres -> JJMMAAAA, 6 chiffres -> JJMMAA
+  const digits = s.replace(/\D/g, "");
+  if (/^\d{8}$/.test(digits)) {
+    const d = parseInt(digits.slice(0, 2), 10), mo = parseInt(digits.slice(2, 4), 10), y = parseInt(digits.slice(4, 8), 10);
+    if (valid(y, mo, d))
+      return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  if (/^\d{6}$/.test(digits)) {
+    const d = parseInt(digits.slice(0, 2), 10), mo = parseInt(digits.slice(2, 4), 10), y = 2000 + parseInt(digits.slice(4, 6), 10);
+    if (valid(y, mo, d))
+      return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  return null;
+}
+
 // RG1: temps mis en minutes, +1440 si négatif (passage minuit)
 export function tempsMisMin(debut: string, fin: string): number | null {
   const d = toMin(debut);
