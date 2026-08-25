@@ -5,8 +5,6 @@ import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
 
-const HEURES = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 const JOURS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 const MOIS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 const ANNEE_COURANTE = new Date().getFullYear();
@@ -319,63 +317,23 @@ export default function App() {
             </div>
             <div className="field">
               <label>Heure de début</label>
-              <div className="time-selects">
-                <select
-                  aria-label="Heure de début"
-                  value={form.debut.split(":")[0]}
-                  onChange={(e) => {
-                    const [, m] = form.debut.split(":");
-                    setForm({ ...form, debut: `${e.target.value}:${m ?? "00"}` });
-                  }}
-                >
-                  {HEURES.map((h) => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-                <span className="sep">h</span>
-                <select
-                  aria-label="Minute de début"
-                  value={form.debut.split(":")[1] ?? "00"}
-                  onChange={(e) => {
-                    const [h] = form.debut.split(":");
-                    setForm({ ...form, debut: `${h ?? "08"}:${e.target.value}` });
-                  }}
-                >
-                  {MINUTES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="08:30"
+                value={form.debut}
+                onChange={(e) => setForm({ ...form, debut: e.target.value })}
+              />
             </div>
             <div className="field">
               <label>Heure de fin</label>
-              <div className="time-selects">
-                <select
-                  aria-label="Heure de fin"
-                  value={form.fin.split(":")[0]}
-                  onChange={(e) => {
-                    const [, m] = form.fin.split(":");
-                    setForm({ ...form, fin: `${e.target.value}:${m ?? "00"}` });
-                  }}
-                >
-                  {HEURES.map((h) => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-                <span className="sep">h</span>
-                <select
-                  aria-label="Minute de fin"
-                  value={form.fin.split(":")[1] ?? "00"}
-                  onChange={(e) => {
-                    const [h] = form.fin.split(":");
-                    setForm({ ...form, fin: `${h ?? "20"}:${e.target.value}` });
-                  }}
-                >
-                  {MINUTES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="20:30"
+                value={form.fin}
+                onChange={(e) => setForm({ ...form, fin: e.target.value })}
+              />
             </div>
             <div className="field">
                 <label>Participant(s)</label>
