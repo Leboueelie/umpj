@@ -90,9 +90,20 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--bor
 th { color: var(--muted); font-weight: 600; }
 tr.total td { font-weight: 700; background: #fdf3e0; border-top: 2px solid var(--accent); }
 .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .del-line { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 0.85rem; }
 .empty { color: var(--muted); font-style: italic; }
 @media (max-width: 600px) {
+  .wrap { padding: 10px; }
+  .app-header { gap: 10px; }
+  .logo { height: 56px; }
+  h1 { font-size: 1.15rem; }
+  .card { padding: 12px; }
+  .field { flex: 1 1 100%; }
+  .cahier-btn { flex: 1 1 100%; }
+  .time-selects select { flex: 1; min-width: 0; }
+  .form-actions { flex-direction: column; }
+  .form-actions .btn { width: 100%; }
   table { font-size: 0.78rem; }
-  th, td { padding: 6px; }
+  th, td { padding: 6px; white-space: nowrap; }
 }

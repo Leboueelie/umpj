@@ -346,7 +346,7 @@ export default function App() {
               />
             </div>
           </div>
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="form-actions" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn" type="submit">
               {editingId ? "Enregistrer les modifications" : "Ajouter la ligne"}
             </button>
@@ -412,6 +412,7 @@ export default function App() {
         {activeLignes.length === 0 ? (
           <div className="empty">Aucune ligne pour ce cahier.</div>
         ) : (
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
@@ -456,6 +457,7 @@ export default function App() {
               </tr>
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
