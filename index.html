@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAISON DE PRIERE D'ABIDJAN POUR TOUTES LES NATIONS</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --border: #dfe3e8;
+      --accent: #2f6f4f;
+      --accent-dark: #245a40;
+      --danger: #b23b3b;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: #1f2933;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.4rem; margin: 8px 0 4px; color: var(--accent-dark); }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .cahiers { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .cahier-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 120px;
+    }
+    .cahier-btn.active { border-color: var(--accent); background: #eef7f1; }
+    .cahier-btn .nom { font-weight: 600; }
+    .cahier-btn .complet { font-size: 0.78rem; color: var(--muted); }
+    .cahier-actions { display: flex; gap: 4px; margin-top: 4px; }
+    .link-btn {
+      background: none; border: none; color: var(--accent); cursor: pointer;
+      font-size: 0.78rem; padding: 0; text-decoration: underline;
+    }
+    .link-btn.danger { color: var(--danger); }
+    .cahier-add {
+      border: 1px dashed var(--border); background: #fff; border-radius: 8px;
+      padding: 8px 12px; cursor: pointer; color: var(--accent); font-size: 0.9rem;
+    }
+    form .row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; }
+    .field label { font-size: 0.8rem; color: var(--muted); }
+    input {
+      padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem;
+    }
+    .btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 6px;
+      padding: 9px 16px; font-size: 0.9rem; cursor: pointer;
+    }
+    .btn:hover { background: var(--accent-dark); }
+    .btn.secondary { background: #e5e7eb; color: #1f2933; }
+    .btn.secondary:hover { background: #d1d5db; }
+    .preview {
+      margin-top: 12px; padding: 10px 12px; background: #eef7f1; border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .err { color: var(--danger); font-size: 0.85rem; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    tr.total td { font-weight: 700; background: #eef7f1; border-top: 2px solid var(--accent); }
+    .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .del-line { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 0.85rem; }
+    .empty { color: var(--muted); font-style: italic; }
+    @media (max-width: 600px) {
+      table { font-size: 0.78rem; }
+      th, td { padding: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    const STORAGE_KEY = "umpj-data";
+
+    function uid() {
+      return (crypto.randomUUID && crypto.randomUUID()) ||
+        (Date.now().toString(36) + Math.random().toString(36).slice(2));
+    }
+
+    // ---- Domain helpers ----
+    function toMin(hhmm) {
+      if (!hhmm || !hhmm.includes(":")) return null;
+      const [h, m] = hhmm.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    // RG1: temps mis en minutes, +1440 si négatif (passage minuit)
+    function tempsMisMin(debut, fin) {
+      const d = toMin(debut), f = toMin(fin);
+      if (d === null || f === null) return null;
+      let diff = f - d;
+      if (diff < 0) diff += 1440;
+      return diff;
+    }
+
+    // RG2: cumul = temps mis * personnes
+    function cumulMin(tempsMis, personnes) {
+      if (tempsMis === null || !personnes) return null;
+      return tempsMis * personnes;
+    }
+
+    // Affichage Xh YYmn
+    function fmtDuree(min) {
+      if (min === null || min === undefined) return "";
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return h + "h" + String(m).padStart(2, "0");
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      return d + "/" + m + "/" + y;
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+      return null;
+    }
+
+    function App() {
+      const initial = load();
+      const [cahiers, setCahiers] = useState(initial?.cahiers || [
+        { id: uid(), nom: "Cahier 1" }
+      ]);
+      const [lignes, setLignes] = useState(
+        (initial?.lignes || []).map(l => ({
+          ...l,
+          heure_debut: l.heure_debut ?? l.debut,
+          heure_fin: l.heure_fin ?? l.fin
+        }))
+      );
+      const [activeId, setActiveId] = useState(
+        (initial?.cahiers && initial.cahiers[0]?.id) || null
+      );
+
+      const [form, setForm] = useState({
+        date: new Date().toISOString().slice(0, 10),
+        debut: "",
+        fin: "",
+        personnes: "1"
+      });
+      const [error, setError] = useState("");
+      const [editingId, setEditingId] = useState(null);
+
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ cahiers, lignes }));
+      }, [cahiers, lignes]);
+
+      // RG3: complet par cahier (recalculé à l'affichage)
+      const completParCahier = useMemo(() => {
+        const map = {};
+        for (const c of cahiers) map[c.id] = 0;
+        for (const l of lignes) {
+          const tm = tempsMisMin(l.heure_debut, l.heure_fin);
+          if (tm !== null) map[l.cahier_id] = (map[l.cahier_id] || 0) + cumulMin(tm, l.nombre_personnes);
+        }
+        return map;
+      }, [cahiers, lignes]);
+
+      const activeCahier = cahiers.find(c => c.id === activeId) || cahiers[0];
+      const activeLignes = lignes
+        .filter(l => l.cahier_id === (activeCahier && activeCahier.id))
+        .sort((a, b) => (a.date + a.heure_debut).localeCompare(b.date + b.heure_debut));
+
+      const previewTm = tempsMisMin(form.debut, form.fin);
+      const previewPers = parseInt(form.personnes, 10);
+      const previewCum = cumulMin(previewTm, (previewPers >= 1 ? previewPers : null));
+
+      // ---- Actions ----
+      function addCahier() {
+        const nom = prompt("Nom du nouveau cahier :", "Cahier " + (cahiers.length + 1));
+        if (!nom) return;
+        const id = uid();
+        setCahiers([...cahiers, { id, nom }]);
+        setActiveId(id);
+      }
+
+      function deleteCahier(id) {
+        if (cahiers.length <= 1) { // RG5
+          alert("Impossible de supprimer le dernier cahier.");
+          return;
+        }
+        const c = cahiers.find(x => x.id === id);
+        if (!confirm("Supprimer le cahier \"" + c.nom + "\" et toutes ses lignes ?")) return;
+        setCahiers(cahiers.filter(x => x.id !== id));
+        setLignes(lignes.filter(l => l.cahier_id !== id));
+        if (activeId === id) setActiveId(cahiers.find(x => x.id !== id).id);
+      }
+
+      function renameCahier(id) {
+        const c = cahiers.find(x => x.id === id);
+        const nom = prompt("Renommer le cahier :", c.nom);
+        if (!nom) return;
+        setCahiers(cahiers.map(x => x.id === id ? { ...x, nom } : x));
+      }
+
+      function submitLigne(e) {
+        e.preventDefault();
+        setError("");
+        const { date, debut, fin, personnes } = form;
+        const pers = parseInt(personnes, 10);
+        if (!date || !debut || !fin) { setError("Date, heure de début et de fin sont obligatoires."); return; }
+        if (!pers || pers < 1) { setError("Le nombre de personnes doit être ≥ 1."); return; }
+        if (tempsMisMin(debut, fin) === null) { setError("Horaires invalides."); return; }
+        if (editingId) {
+          setLignes(lignes.map(l => l.id === editingId
+            ? { ...l, date, heure_debut: debut, heure_fin: fin, nombre_personnes: pers }
+            : l));
+          setEditingId(null);
+          setForm({ ...form, debut: "", fin: "", personnes: "1" });
+          return;
+        }
+        const ligne = {
+          id: uid(),
+          cahier_id: activeCahier.id,
+          date,
+          heure_debut: debut,
+          heure_fin: fin,
+          nombre_personnes: pers
+        };
+        setLignes([...lignes, ligne]);
+        setForm({ ...form, debut: "", fin: "", personnes: "1" });
+      }
+
+      function deleteLigne(id) {
+        if (!confirm("Supprimer cette ligne ?")) return;
+        setLignes(lignes.filter(l => l.id !== id));
+        if (editingId === id) { setEditingId(null); setForm({ ...form, debut: "", fin: "", personnes: "1" }); }
+      }
+
+      function editLigne(id) {
+        const l = lignes.find(x => x.id === id);
+        if (!l) return;
+        setEditingId(id);
+        setForm({
+          date: l.date,
+          debut: l.heure_debut,
+          fin: l.heure_fin,
+          personnes: String(l.nombre_personnes)
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function cancelEdit() {
+        setEditingId(null);
+        setForm({ ...form, debut: "", fin: "", personnes: "1" });
+        setError("");
+      }
+
+      const TIME_FMT = "hh:mm";
+      const DUREE_FMT = "[h]\\hmm";
+
+      // Construit la feuille d'un cahier avec formules Excel editables
+      function buildCahierSheet(c) {
+        const ls = lignes.filter(l => l.cahier_id === c.id)
+          .sort((a, b) => (a.date + a.heure_debut).localeCompare(b.date + b.heure_debut));
+        const aoa = [["N°", "Date", "Début", "Fin", "Nb personnes", "Temps mis", "Cumul"]];
+        let total = 0;
+        ls.forEach((l, i) => {
+          const r = i + 2; // rangée Excel (1 = en-tête)
+          const tm = tempsMisMin(l.heure_debut, l.heure_fin);
+          const cu = cumulMin(tm, l.nombre_personnes);
+          total += (cu || 0);
+          const debutS = (toMin(l.heure_debut) || 0) / 1440;
+          const finS = (toMin(l.heure_fin) || 0) / 1440;
+          const tmS = (tm || 0) / 1440;
+          const cuS = (cu || 0) / 1440;
+          aoa.push([
+            i + 1,
+            fmtDate(l.date),
+            { t: "n", v: debutS, z: TIME_FMT },
+            { t: "n", v: finS, z: TIME_FMT },
+            l.nombre_personnes,
+            { t: "n", v: tmS, z: DUREE_FMT, f: "=IF(D" + r + "<C" + r + ",D" + r + "-C" + r + "+1,D" + r + "-C" + r + ")" },
+            { t: "n", v: cuS, z: DUREE_FMT, f: "=F" + r + "*E" + r }
+          ]);
+        });
+        const last = ls.length + 1;        // dernière rangée de données
+        const totalRow = ls.length + 2;    // rangée "Complet"
+        aoa.push([
+          "Complet", "", "", "", "", "",
+          { t: "n", v: total / 1440, z: DUREE_FMT, f: "=SUM(G2:G" + last + ")" }
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        return { ws, sheetName: c.nom.slice(0, 28), totalRow };
+      }
+
+      function exportCahier(c) {
+        const { ws, sheetName } = buildCahierSheet(c);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        wb.Workbook = wb.Workbook || {};
+        wb.Workbook.CalcPr = { fullCalcOnLoad: true };
+        XLSX.writeFile(wb, (c.nom || "cahier") + ".xlsx");
+      }
+
+      function exportGlobal() {
+        const wb = XLSX.utils.book_new();
+        wb.Workbook = wb.Workbook || {};
+        wb.Workbook.CalcPr = { fullCalcOnLoad: true };
+        const recap = [["Cahier", "Complet"]];
+        for (const c of cahiers) {
+          const { ws, sheetName, totalRow } = buildCahierSheet(c);
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+          const safe = "'" + sheetName.replace(/'/g, "''") + "'";
+          recap.push([
+            c.nom,
+            { t: "n", v: (completParCahier[c.id] || 0) / 1440, z: DUREE_FMT, f: "=" + safe + "!G" + totalRow }
+          ]);
+        }
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recap), "Récapitulatif");
+        XLSX.writeFile(wb, "registres-priere.xlsx");
+      }
+
+      return (
+        <div className="wrap">
+          <h1>MAISON DE PRIERE D'ABIDJAN POUR TOUTES LES NATIONS</h1>
+          <div className="sub">Prototype — données enregistrées localement sur ce navigateur</div>
+
+          <div className="card">
+            <div className="cahiers">
+              {cahiers.map(c => (
+                <div key={c.id}
+                     className={"cahier-btn" + (c.id === (activeCahier && activeCahier.id) ? " active" : "")}
+                     onClick={() => setActiveId(c.id)}>
+                  <span className="nom">{c.nom}</span>
+                  <span className="complet">Complet : {fmtDuree(completParCahier[c.id] || 0)}</span>
+                  <div className="cahier-actions" onClick={e => e.stopPropagation()}>
+                    <button className="link-btn" onClick={() => renameCahier(c.id)}>Renommer</button>
+                    <button className="link-btn danger" onClick={() => deleteCahier(c.id)}>Supprimer</button>
+                  </div>
+                </div>
+              ))}
+              <button className="cahier-add" onClick={addCahier}>+ Nouveau cahier</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 style={{marginTop:0}}>{editingId ? "Modification d'une ligne" : "Saisie d'une ligne"} {activeCahier ? "— " + activeCahier.nom : ""}</h3>
+            <form onSubmit={submitLigne}>
+              <div className="row">
+                <div className="field">
+                  <label>Date</label>
+                  <input type="date" value={form.date}
+                    onChange={e => setForm({ ...form, date: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>Heure de début</label>
+                  <input type="time" value={form.debut}
+                    onChange={e => setForm({ ...form, debut: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>Heure de fin</label>
+                  <input type="time" value={form.fin}
+                    onChange={e => setForm({ ...form, fin: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>Nombre de personnes</label>
+                  <input type="number" min="1" value={form.personnes}
+                    onChange={e => setForm({ ...form, personnes: e.target.value })} />
+                </div>
+              </div>
+              <div style={{marginTop:12, display:"flex", gap:8}}>
+                <button className="btn" type="submit">{editingId ? "Enregistrer les modifications" : "Ajouter la ligne"}</button>
+                {editingId && (
+                  <button className="btn secondary" type="button" onClick={cancelEdit}>Annuler</button>
+                )}
+                <button className="btn secondary" type="button" onClick={exportCahier.bind(null, activeCahier)}>Export Excel (cahier)</button>
+                <button className="btn secondary" type="button" onClick={exportGlobal}>Export global</button>
+              </div>
+              {error && <div className="err">{error}</div>}
+              {(form.debut && form.fin) && (
+                <div className="preview">
+                  Aperçu : Temps mis = <strong>{fmtDuree(previewTm)}</strong>
+                  {" "}— Cumul = <strong>{fmtDuree(previewCum)}</strong>
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="card">
+            <div className="table-actions">
+              <strong>{activeCahier ? activeCahier.nom : ""} — lignes</strong>
+            </div>
+            {activeLignes.length === 0 ? (
+              <div className="empty">Aucune ligne pour ce cahier.</div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>N°</th><th>Date</th><th>Début</th><th>Fin</th>
+                    <th>Nb personnes</th><th>Temps mis</th><th>Cumul</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeLignes.map((l, i) => {
+                    const tm = tempsMisMin(l.heure_debut, l.heure_fin);
+                    const cu = cumulMin(tm, l.nombre_personnes);
+                    return (
+                      <tr key={l.id}>
+                        <td>{i + 1}</td>
+                        <td>{fmtDate(l.date)}</td>
+                        <td>{l.heure_debut}</td>
+                        <td>{l.heure_fin}</td>
+                        <td>{l.nombre_personnes}</td>
+                        <td>{fmtDuree(tm)}</td>
+                        <td>{fmtDuree(cu)}</td>
+                        <td>
+                          <button className="link-btn" onClick={() => editLigne(l.id)}>Modifier</button>
+                          {" "}
+                          <button className="del-line" onClick={() => deleteLigne(l.id)}>Supprimer</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="total">
+                    <td colSpan="6">Complet</td>
+                    <td>{fmtDuree(completParCahier[activeCahier.id] || 0)}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
