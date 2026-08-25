@@ -7,6 +7,10 @@ import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
 
 const HEURES = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+const JOURS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+const MOIS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const ANNEE_COURANTE = new Date().getFullYear();
+const ANNEES = Array.from({ length: 11 }, (_, i) => String(ANNEE_COURANTE - 5 + i));
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -272,11 +276,46 @@ export default function App() {
           <div className="row">
             <div className="field">
               <label>Date</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-              />
+              <div className="date-selects">
+                <select
+                  aria-label="Jour"
+                  value={form.date.slice(8, 10)}
+                  onChange={(e) => {
+                    const [, mo, y] = form.date.split("-");
+                    setForm({ ...form, date: `${y}-${mo}-${e.target.value}` });
+                  }}
+                >
+                  {JOURS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <span className="sep">/</span>
+                <select
+                  aria-label="Mois"
+                  value={form.date.slice(5, 7)}
+                  onChange={(e) => {
+                    const [y, , d] = form.date.split("-");
+                    setForm({ ...form, date: `${y}-${e.target.value}-${d}` });
+                  }}
+                >
+                  {MOIS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <span className="sep">/</span>
+                <select
+                  aria-label="Année"
+                  value={form.date.slice(0, 4)}
+                  onChange={(e) => {
+                    const [, mo, d] = form.date.split("-");
+                    setForm({ ...form, date: `${e.target.value}-${mo}-${d}` });
+                  }}
+                >
+                  {ANNEES.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="field">
               <label>Heure de début</label>
@@ -293,7 +332,7 @@ export default function App() {
                     <option key={h} value={h}>{h}</option>
                   ))}
                 </select>
-                <span className="sep">:</span>
+                <span className="sep">h</span>
                 <select
                   aria-label="Minute de début"
                   value={form.debut.split(":")[1] ?? "00"}
@@ -323,7 +362,7 @@ export default function App() {
                     <option key={h} value={h}>{h}</option>
                   ))}
                 </select>
-                <span className="sep">:</span>
+                <span className="sep">h</span>
                 <select
                   aria-label="Minute de fin"
                   value={form.fin.split(":")[1] ?? "00"}
