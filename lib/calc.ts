@@ -8,6 +8,28 @@ export function toMin(hhmm: string | null | undefined): number | null {
   return h * 60 + m;
 }
 
+// Normalise une saisie libre en "HH:MM" (ex: 8h30, 20:15, 830, 8h, 8)
+export function normalizeHeure(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let s = raw.trim().toLowerCase().replace(/\s+/g, "");
+  if (!s) return null;
+  let h: number, m = 0;
+  if (s.includes("h")) s = s.replace("h", ":");
+  if (s.includes(":")) {
+    const [hs, ms] = s.split(":");
+    h = parseInt(hs, 10);
+    m = ms ? parseInt(ms, 10) : 0;
+  } else if (/^\d+$/.test(s)) {
+    if (s.length <= 2) { h = parseInt(s, 10); m = 0; }
+    else if (s.length === 3) { h = parseInt(s[0], 10); m = parseInt(s.slice(1), 10); }
+    else { h = parseInt(s.slice(0, 2), 10); m = parseInt(s.slice(2, 4), 10); }
+  } else {
+    return null;
+  }
+  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 // RG1: temps mis en minutes, +1440 si négatif (passage minuit)
 export function tempsMisMin(debut: string, fin: string): number | null {
   const d = toMin(debut);

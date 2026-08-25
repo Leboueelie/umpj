@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { Cahier, Ligne } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree, fmtDate } from "@/lib/calc";
+import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
+
+const HEURES = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -21,8 +24,8 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
-    debut: "",
-    fin: "",
+    debut: "08:00",
+    fin: "20:00",
     personnes: "1",
   });
   const [error, setError] = useState("");
@@ -113,15 +116,17 @@ export default function App() {
     setError("");
     const { date, debut, fin, personnes } = form;
     const pers = parseInt(personnes, 10);
-    if (!date || !debut || !fin) {
-      setError("Date, heure de début et de fin sont obligatoires.");
+    const debutNorm = normalizeHeure(debut);
+    const finNorm = normalizeHeure(fin);
+    if (!date || !debutNorm || !finNorm) {
+      setError("Date, heure de début et de fin sont obligatoires (ex : 8h30, 20:15, 830).");
       return;
     }
     if (!pers || pers < 1) {
       setError("Le nombre de participants doit être ≥ 1.");
       return;
     }
-    if (tempsMisMin(debut, fin) === null) {
+    if (tempsMisMin(debutNorm, finNorm) === null) {
       setError("Horaires invalides.");
       return;
     }
@@ -129,7 +134,7 @@ export default function App() {
       if (editingId) {
         await api("/api/lignes/" + editingId, {
           method: "PUT",
-          body: JSON.stringify({ date, heureDebut: debut, heureFin: fin, nombrePersonnes: pers }),
+          body: JSON.stringify({ date, heureDebut: debutNorm, heureFin: finNorm, nombrePersonnes: pers }),
         });
       } else {
         await api("/api/lignes", {
@@ -137,14 +142,14 @@ export default function App() {
           body: JSON.stringify({
             cahierId: activeCahier.id,
             date,
-            heureDebut: debut,
-            heureFin: fin,
+            heureDebut: debutNorm,
+            heureFin: finNorm,
             nombrePersonnes: pers,
           }),
         });
       }
       setEditingId(null);
-      setForm({ ...form, debut: "", fin: "", personnes: "1" });
+      setForm({ ...form, debut: "08:00", fin: "20:00", personnes: "1" });
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -157,7 +162,7 @@ export default function App() {
       await api("/api/lignes/" + id, { method: "DELETE" });
       if (editingId === id) {
         setEditingId(null);
-        setForm({ ...form, debut: "", fin: "", personnes: "1" });
+        setForm({ ...form, debut: "08:00", fin: "20:00", personnes: "1" });
       }
       await load();
     } catch (e) {
@@ -273,19 +278,63 @@ export default function App() {
             </div>
             <div className="field">
               <label>Heure de début</label>
-              <input
-                type="time"
-                value={form.debut}
-                onChange={(e) => setForm({ ...form, debut: e.target.value })}
-              />
+              <div className="time-selects">
+                <select
+                  aria-label="Heure de début"
+                  value={form.debut.split(":")[0]}
+                  onChange={(e) => {
+                    const [, m] = form.debut.split(":");
+                    setForm({ ...form, debut: `${e.target.value}:${m ?? "00"}` });
+                  }}
+                >
+                  {HEURES.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <span className="sep">:</span>
+                <select
+                  aria-label="Minute de début"
+                  value={form.debut.split(":")[1] ?? "00"}
+                  onChange={(e) => {
+                    const [h] = form.debut.split(":");
+                    setForm({ ...form, debut: `${h ?? "08"}:${e.target.value}` });
+                  }}
+                >
+                  {MINUTES.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="field">
               <label>Heure de fin</label>
-              <input
-                type="time"
-                value={form.fin}
-                onChange={(e) => setForm({ ...form, fin: e.target.value })}
-              />
+              <div className="time-selects">
+                <select
+                  aria-label="Heure de fin"
+                  value={form.fin.split(":")[0]}
+                  onChange={(e) => {
+                    const [, m] = form.fin.split(":");
+                    setForm({ ...form, fin: `${e.target.value}:${m ?? "00"}` });
+                  }}
+                >
+                  {HEURES.map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <span className="sep">:</span>
+                <select
+                  aria-label="Minute de fin"
+                  value={form.fin.split(":")[1] ?? "00"}
+                  onChange={(e) => {
+                    const [h] = form.fin.split(":");
+                    setForm({ ...form, fin: `${h ?? "20"}:${e.target.value}` });
+                  }}
+                >
+                  {MINUTES.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="field">
                 <label>Participant(s)</label>
