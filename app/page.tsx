@@ -64,25 +64,39 @@ export default function App() {
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
   const [searchLigne, setSearchLigne] = useState("");
+  const [year, setYear] = useState("");
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const anneesDispo = useMemo(
+    () =>
+      Array.from(new Set(lignes.map((l) => (l.date || "").slice(0, 4))))
+        .filter(Boolean)
+        .sort()
+        .reverse(),
+    [lignes]
+  );
+  const lignesAnnee = useMemo(
+    () => (year ? lignes.filter((l) => (l.date || "").startsWith(year)) : lignes),
+    [lignes, year]
+  );
+
   const completParCahier = useMemo(() => {
     const map: Record<string, number> = {};
     for (const c of cahiers) map[c.id] = 0;
-    for (const l of lignes) {
+    for (const l of lignesAnnee) {
       const tm = tempsMisMin(l.heureDebut, l.heureFin);
       const cu = cumulMin(tm, l.nombrePersonnes);
       if (cu !== null) map[l.cahierId] = (map[l.cahierId] || 0) + cu;
     }
     return map;
-  }, [cahiers, lignes]);
+  }, [cahiers, lignesAnnee]);
 
   const activeCahier = cahiers.find((c) => c.id === activeId) || cahiers[0];
-  const activeLignes = (lignes || [])
+  const activeLignes = (lignesAnnee || [])
     .filter((l) => l.cahierId === (activeCahier && activeCahier.id))
     .sort((a, b) => (a.date + a.heureDebut).localeCompare(b.date + b.heureDebut));
 
@@ -270,13 +284,19 @@ export default function App() {
       </header>
 
       <div className="card">
-        <div className="search-bar">
+        <div className="filters">
           <input
             type="text"
             placeholder="Rechercher un cahier…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <select value={year} onChange={(e) => setYear(e.target.value)} aria-label="Filtrer par année">
+            <option value="">Toutes les années</option>
+            {anneesDispo.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
         </div>
         <div className="cahiers">
           {cahiersFiltres.length === 0 ? (
