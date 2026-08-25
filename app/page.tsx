@@ -5,6 +5,24 @@ import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
 
+function formatDateInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  const parts: string[] = [];
+  if (d.length > 0) parts.push(d.slice(0, 2));
+  if (d.length >= 3) parts.push(d.slice(2, 4));
+  if (d.length >= 5) parts.push(d.slice(4, 8));
+  return parts.join("/");
+}
+function formatTimeInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  return d.slice(0, 2) + ":" + d.slice(2, 4);
+}
+function isoToDisplay(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
@@ -20,7 +38,7 @@ export default function App() {
   const [lignes, setLignes] = useState<Ligne[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: isoToDisplay(new Date().toISOString().slice(0, 10)),
     debut: "08:00",
     fin: "20:00",
     personnes: "1",
@@ -171,7 +189,7 @@ export default function App() {
   function editLigne(l: Ligne) {
     setEditingId(l.id);
     setForm({
-      date: l.date,
+      date: isoToDisplay(l.date),
       debut: l.heureDebut,
       fin: l.heureFin,
       personnes: String(l.nombrePersonnes),
@@ -272,9 +290,10 @@ export default function App() {
               <label>Date</label>
               <input
                 type="text"
+                inputMode="numeric"
                 placeholder="25/08/2025"
                 value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                onChange={(e) => setForm({ ...form, date: formatDateInput(e.target.value) })}
               />
             </div>
             <div className="field">
@@ -284,7 +303,7 @@ export default function App() {
                 inputMode="numeric"
                 placeholder="08:30"
                 value={form.debut}
-                onChange={(e) => setForm({ ...form, debut: e.target.value })}
+                onChange={(e) => setForm({ ...form, debut: formatTimeInput(e.target.value) })}
               />
             </div>
             <div className="field">
@@ -294,7 +313,7 @@ export default function App() {
                 inputMode="numeric"
                 placeholder="20:30"
                 value={form.fin}
-                onChange={(e) => setForm({ ...form, fin: e.target.value })}
+                onChange={(e) => setForm({ ...form, fin: formatTimeInput(e.target.value) })}
               />
             </div>
             <div className="field">
