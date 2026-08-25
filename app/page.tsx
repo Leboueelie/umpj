@@ -200,6 +200,7 @@ export default function App() {
       const r = await api<{
         cahiersCrees: number;
         cahiersFondus: number;
+        cahiersIgnores: number;
         lignesCrees: number;
         lignesIgnorees: number;
       }>("/api/import", {
@@ -209,6 +210,7 @@ export default function App() {
       const parts = [
         `${r.cahiersCrees} cahier(s) créé(s)`,
         r.cahiersFondus ? `${r.cahiersFondus} cahier(s) fusionné(s)` : null,
+        r.cahiersIgnores ? `${r.cahiersIgnores} cahier(s) déjà à jour ignoré(s)` : null,
         `${r.lignesCrees} ligne(s) ajoutée(s)`,
         r.lignesIgnorees ? `${r.lignesIgnorees} doublon(s) ignoré(s)` : null,
       ].filter(Boolean);

@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 
   let cahiersCrees = 0;
   let cahiersFondus = 0;
+  let cahiersIgnores = 0;
   let lignesCrees = 0;
   let lignesIgnorees = 0;
 
@@ -23,21 +24,6 @@ export async function POST(req: Request) {
       const nom = (ic.nom ?? "").toString().trim();
       if (!nom) continue;
       const lignes = Array.isArray(ic.lignes) ? ic.lignes : [];
-
-      const ex = await client.query(`SELECT id FROM "Cahier" WHERE nom = $1`, [nom]);
-      let cahierId: string;
-      if (ex.rowCount && ex.rowCount > 0) {
-        cahierId = ex.rows[0].id;
-        cahiersFondus++;
-      } else {
-        const id = crypto.randomUUID();
-        const r = await client.query(
-          `INSERT INTO "Cahier" (id, nom) VALUES ($1, $2) RETURNING id`,
-          [id, nom]
-        );
-        cahierId = r.rows[0].id;
-        cahiersCrees++;
-      }
 
       const valides = lignes
         .map((l) => ({
@@ -58,23 +44,45 @@ export async function POST(req: Request) {
             tempsMisMin(l.heureDebut, l.heureFin) !== null
         );
 
-      if (valides.length === 0) continue;
+      const ex = await client.query(`SELECT id FROM "Cahier" WHERE nom = $1`, [nom]);
+      const existe = !!(ex.rowCount && ex.rowCount > 0);
 
-      const exist = await client.query(
-        `SELECT date, "heureDebut", "heureFin", "nombrePersonnes" FROM "Ligne" WHERE "cahierId" = $1`,
-        [cahierId]
-      );
-      const existKeys = new Set(
-        exist.rows.map(
-          (r) => `${r.date}|${r.heureDebut}|${r.heureFin}|${r.nombrePersonnes}`
-        )
-      );
+      let cahierId: string;
+      let aInserer = valides;
 
-      const aInserer = valides.filter(
-        (l) =>
-          !existKeys.has(`${l.date}|${l.heureDebut}|${l.heureFin}|${l.nombrePersonnes}`)
-      );
-      lignesIgnorees += valides.length - aInserer.length;
+      if (existe) {
+        cahierId = ex.rows[0].id;
+        const exist = await client.query(
+          `SELECT date, "heureDebut", "heureFin", "nombrePersonnes" FROM "Ligne" WHERE "cahierId" = $1`,
+          [cahierId]
+        );
+        const existingCount = exist.rowCount ?? 0;
+        // Cahier déjà à jour (feuille du fichier vide/stale) -> on n'écrase pas
+        if (valides.length <= existingCount) {
+          cahiersIgnores++;
+          continue;
+        }
+        cahiersFondus++;
+        const existKeys = new Set(
+          exist.rows.map(
+            (r) => `${r.date}|${r.heureDebut}|${r.heureFin}|${r.nombrePersonnes}`
+          )
+        );
+        aInserer = valides.filter(
+          (l) =>
+            !existKeys.has(`${l.date}|${l.heureDebut}|${l.heureFin}|${l.nombrePersonnes}`)
+        );
+        lignesIgnorees += valides.length - aInserer.length;
+      } else {
+        if (valides.length === 0) continue;
+        const id = crypto.randomUUID();
+        const r = await client.query(
+          `INSERT INTO "Cahier" (id, nom) VALUES ($1, $2) RETURNING id`,
+          [id, nom]
+        );
+        cahierId = r.rows[0].id;
+        cahiersCrees++;
+      }
 
       const CHUNK = 1000;
       for (let i = 0; i < aInserer.length; i += CHUNK) {
@@ -103,7 +111,7 @@ export async function POST(req: Request) {
     }
 
     await client.query("COMMIT");
-    return NextResponse.json({ cahiersCrees, cahiersFondus, lignesCrees, lignesIgnorees });
+    return NextResponse.json({ cahiersCrees, cahiersFondus, cahiersIgnores, lignesCrees, lignesIgnorees });
   } catch (e) {
     await client.query("ROLLBACK");
     const msg = e instanceof Error ? e.message : "Échec de l'import.";
