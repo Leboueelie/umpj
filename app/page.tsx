@@ -22,6 +22,16 @@ function isoToDisplay(iso: string): string {
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
 }
+function shiftDate(display: string, delta: number): string {
+  let d: Date;
+  const m = display.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) d = new Date(+m[3], +m[2] - 1, +m[1]);
+  else d = new Date();
+  d.setDate(d.getDate() + delta);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -335,13 +345,31 @@ export default function App() {
           <div className="row">
             <div className="field">
               <label>Date</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="25/08/2025"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: formatDateInput(e.target.value) })}
-              />
+              <div className="date-nav">
+                <button
+                  type="button"
+                  className="step-btn"
+                  aria-label="Jour précédent"
+                  onClick={() => setForm({ ...form, date: shiftDate(form.date, -1) })}
+                >
+                  ‹
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="25/08/2025"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: formatDateInput(e.target.value) })}
+                />
+                <button
+                  type="button"
+                  className="step-btn"
+                  aria-label="Jour suivant"
+                  onClick={() => setForm({ ...form, date: shiftDate(form.date, 1) })}
+                >
+                  ›
+                </button>
+              </div>
             </div>
             <div className="field">
               <label>Heure de début</label>
