@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { tempsMisMin } from "@/lib/calc";
+import { tempsMisMin, normalizeHeure, normalizeDate } from "@/lib/calc";
 import type { ImportedCahier } from "@/lib/excel";
 
 export async function POST(req: Request) {
@@ -27,9 +27,9 @@ export async function POST(req: Request) {
 
       const valides = lignes
         .map((l) => ({
-          date: (l.date ?? "").toString(),
-          heureDebut: (l.heureDebut ?? "").toString(),
-          heureFin: (l.heureFin ?? "").toString(),
+          date: normalizeDate((l.date ?? "").toString()),
+          heureDebut: normalizeHeure((l.heureDebut ?? "").toString()),
+          heureFin: normalizeHeure((l.heureFin ?? "").toString()),
           nombrePersonnes:
             typeof l.nombrePersonnes === "number"
               ? l.nombrePersonnes
@@ -65,13 +65,19 @@ export async function POST(req: Request) {
         cahiersFondus++;
         const existKeys = new Set(
           exist.rows.map(
-            (r) => `${r.date}|${r.heureDebut}|${r.heureFin}|${r.nombrePersonnes}`
+            (r) =>
+              `${normalizeDate(r.date)}|${normalizeHeure(r.heureDebut)}|${normalizeHeure(
+                r.heureFin
+              )}|${r.nombrePersonnes}`
           )
         );
-        aInserer = valides.filter(
-          (l) =>
-            !existKeys.has(`${l.date}|${l.heureDebut}|${l.heureFin}|${l.nombrePersonnes}`)
-        );
+        const inserted = new Set<string>();
+        aInserer = valides.filter((l) => {
+          const key = `${l.date}|${l.heureDebut}|${l.heureFin}|${l.nombrePersonnes}`;
+          if (existKeys.has(key) || inserted.has(key)) return false;
+          inserted.add(key);
+          return true;
+        });
         lignesIgnorees += valides.length - aInserer.length;
       } else {
         if (valides.length === 0) continue;
@@ -82,6 +88,14 @@ export async function POST(req: Request) {
         );
         cahierId = r.rows[0].id;
         cahiersCrees++;
+        const inserted = new Set<string>();
+        aInserer = valides.filter((l) => {
+          const key = `${l.date}|${l.heureDebut}|${l.heureFin}|${l.nombrePersonnes}`;
+          if (inserted.has(key)) return false;
+          inserted.add(key);
+          return true;
+        });
+        lignesIgnorees += valides.length - aInserer.length;
       }
 
       const CHUNK = 1000;

@@ -47,6 +47,14 @@ async function buildCahierSheet(c: Cahier, allLignes: Ligne[]) {
   ]);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Lecture facilitée (lib xlsx CE) : largeurs + auto-filtre
+  const w: any = ws;
+  w["!cols"] = [
+    { wch: 5 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 11 }, { wch: 11 },
+  ];
+  w["!autofilter"] = { ref: "A1:G" + (ls.length + 1) };
+
   return { XLSX, ws, sheetName: c.nom.slice(0, 28), totalRow: ls.length + 2 };
 }
 
@@ -83,7 +91,10 @@ export async function exportGlobal(cahiers: Cahier[], lignes: Ligne[]) {
     ]);
   }
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recap as any), "Récapitulatif");
+  const recapWs: any = XLSX.utils.aoa_to_sheet(recap as any);
+  recapWs["!cols"] = [{ wch: 30 }, { wch: 12 }];
+  recapWs["!autofilter"] = { ref: "A1:B" + (cahiers.length + 1) };
+  XLSX.utils.book_append_sheet(wb, recapWs, "Récapitulatif");
   XLSX.writeFile(wb, "registres-priere.xlsx");
 }
 
