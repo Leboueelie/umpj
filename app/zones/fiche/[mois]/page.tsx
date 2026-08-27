@@ -38,6 +38,7 @@ export default function FicheMoisDetail() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [vals, setVals] = useState<Record<string, Val>>({});
   const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number; totT: number }[]>([]);
+  const [mode, setMode] = useState<"lecture" | "edition">("lecture");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -56,14 +57,15 @@ export default function FicheMoisDetail() {
       const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
       for (const r of rows)
         init[r.zoneId] = { p: String(r.participants), t: fmtMinToHeure(r.tempsMis) };
-      // restaure le brouillon non enregistre (survit a un F5 / changement de mois)
-      try {
-        const raw = localStorage.getItem(draftKey(mois));
-        if (raw) {
-          const draft = JSON.parse(raw) as Record<string, Val>;
-          for (const id of Object.keys(draft)) if (init[id]) init[id] = draft[id];
-        }
-      } catch {}
+      if (mode === "edition") {
+        try {
+          const raw = localStorage.getItem(draftKey(mois));
+          if (raw) {
+            const draft = JSON.parse(raw) as Record<string, Val>;
+            for (const id of Object.keys(draft)) if (init[id]) init[id] = draft[id];
+          }
+        } catch {}
+      }
       setVals(init);
       baselineRef.current = init;
       const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
@@ -82,7 +84,6 @@ export default function FicheMoisDetail() {
     setSaved(false);
   }
 
-  // Rafraichissement automatique sans ecraser la saisie en cours
   async function pollSilent() {
     const m = moisRef.current;
     try {
@@ -128,8 +129,15 @@ export default function FicheMoisDetail() {
       try { localStorage.removeItem(draftKey(mois)); } catch {}
       baselineRef.current = { ...vals };
       setSaved(true);
+      setMode("lecture");
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
+  }
+
+  function annuler() {
+    try { localStorage.removeItem(draftKey(mois)); } catch {}
+    setMode("lecture");
+    load();
   }
 
   async function exportFiche() {
@@ -159,6 +167,8 @@ export default function FicheMoisDetail() {
     if (cu) totC += cu;
     return { z, v, duree, manquant, cu };
   });
+
+  const editing = mode === "edition";
 
   return (
     <main className="wrap">
@@ -211,12 +221,20 @@ export default function FicheMoisDetail() {
                   <td className="ncol">{i + 1}</td>
                   <td>{l.z.nom}</td>
                   <td className={l.manquant ? "warn" : undefined}>
-                    <input type="text" inputMode="numeric" placeholder="02:00" value={l.v.t}
-                      onChange={(e) => setVal(l.z.id, { t: formatDureeInput(e.target.value) })} />
+                    {editing ? (
+                      <input type="text" inputMode="numeric" placeholder="02:00" value={l.v.t}
+                        onChange={(e) => setVal(l.z.id, { t: formatDureeInput(e.target.value) })} />
+                    ) : (
+                      l.v.t || "—"
+                    )}
                   </td>
                   <td>
-                    <input type="number" min="1" value={l.v.p}
-                      onChange={(e) => setVal(l.z.id, { p: e.target.value })} />
+                    {editing ? (
+                      <input type="number" min="1" value={l.v.p}
+                        onChange={(e) => setVal(l.z.id, { p: e.target.value })} />
+                    ) : (
+                      (parseInt(l.v.p || "0", 10) || "—")
+                    )}
                   </td>
                   <td className={l.manquant ? "warn" : undefined}>
                     {l.cu !== null ? fmtDuree(l.cu) : (l.manquant ? "à saisir" : "—")}
@@ -237,9 +255,20 @@ export default function FicheMoisDetail() {
         </div>
 
         <div className="form-actions" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn" onClick={save} disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer"}
-          </button>
+          {editing ? (
+            <>
+              <button className="btn" onClick={save} disabled={saving}>
+                {saving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+              <button className="btn secondary" type="button" onClick={annuler} disabled={saving}>
+                Annuler
+              </button>
+            </>
+          ) : (
+            <button className="btn" type="button" onClick={() => setMode("edition")}>
+              Modifier
+            </button>
+          )}
           <button className="btn secondary" type="button" onClick={exportFiche}>Export Excel</button>
           {saved && <span className="note">Fiche enregistrée.</span>}
         </div>
