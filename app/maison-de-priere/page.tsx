@@ -374,7 +374,7 @@ export default function App() {
               </div>
             </div>
             <div className="field">
-              <label>Heure de début</label>
+              <label>Début</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -384,7 +384,7 @@ export default function App() {
               />
             </div>
             <div className="field">
-              <label>Heure de fin</label>
+              <label>Fin</label>
               <input
                 type="text"
                 inputMode="numeric"
