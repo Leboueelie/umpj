@@ -60,6 +60,12 @@ export default function Zones() {
 
   useEffect(() => { loadZones(); loadRecap(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { loadEntrees(); /* eslint-disable-next-line */ }, [mois]);
+  useEffect(() => {
+    try {
+      const m = new URLSearchParams(window.location.search).get("mois");
+      if (m && /^\d{4}-\d{2}$/.test(m)) setMois(m);
+    } catch {}
+  }, []);
 
   async function loadRecap() {
     try { setRecap(await api<{ mois: string; totP: number; totC: number }[]>("/api/zones/recap")); }
@@ -217,6 +223,8 @@ export default function Zones() {
           </select>
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, 1))} aria-label="Mois suivant">›</button>
         </div>
+
+        <Link href="/zones/fiches" className="link-btn">Voir toutes les fiches →</Link>
 
         <div className="table-scroll">
           <table>

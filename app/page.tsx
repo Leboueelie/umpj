@@ -16,6 +16,11 @@ const sections = [
     title: "Fiche mensuelle des heures de prière par zone",
     desc: "Saisie par zone / région spirituelle, cumul national automatique.",
   },
+  {
+    href: "/zones/fiches",
+    title: "Liste des fiches mensuelles",
+    desc: "Toutes les fiches enregistrées par mois, cliquables (vue complète).",
+  },
 ];
 
 export default function Home() {
