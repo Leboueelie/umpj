@@ -203,7 +203,7 @@ export async function exportFicheZones(
   recap: RecapMois[]
 ) {
   const XLSX = await import("xlsx");
-  const aoa: unknown[][] = [["N°", "Zone", "Participant(s)", "Temps mis", "Cumul"]];
+  const aoa: unknown[][] = [["N°", "Zone", "Temps mis", "Participant(s)", "Cumul"]];
   let totP = 0;
   let totC = 0;
   let totT = 0;
@@ -224,20 +224,20 @@ export async function exportFicheZones(
       ? { t: "n" as const, v: cumul / 1440, z: DUREE_FMT }
       : "";
 
-    aoa.push([i + 1, z.nom, p >= 1 ? p : "", tmCell, cuCell]);
+    aoa.push([i + 1, z.nom, tmCell, p >= 1 ? p : "", cuCell]);
   });
 
   aoa.push([
     "Total national",
     "",
-    `${totP} participants`,
     { t: "n", v: totT / 1440, z: DUREE_FMT },
+    `${totP} participants`,
     { t: "n", v: totC / 1440, z: DUREE_FMT },
   ]);
 
   const ws: any = XLSX.utils.aoa_to_sheet(aoa as any);
   ws["!cols"] = [
-    { wch: 5 }, { wch: 26 }, { wch: 15 }, { wch: 11 }, { wch: 11 },
+    { wch: 5 }, { wch: 26 }, { wch: 11 }, { wch: 15 }, { wch: 11 },
   ];
   ws["!autofilter"] = { ref: "A1:E" + (zones.length + 1) };
 

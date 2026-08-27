@@ -86,8 +86,8 @@ export default function FicheMoisDetail() {
               <tr>
                 <th className="ncol">N°</th>
                 <th>Zone</th>
-                <th>Participant(s)</th>
                 <th>Temps mis</th>
+                <th>Participant(s)</th>
                 <th>Cumul</th>
               </tr>
             </thead>
@@ -96,10 +96,10 @@ export default function FicheMoisDetail() {
                 <tr key={l.z.id} className={l.manquant ? "manquant" : undefined}>
                   <td className="ncol">{i + 1}</td>
                   <td>{l.z.nom}</td>
-                  <td>{l.v.p || "—"}</td>
                   <td className={l.manquant ? "warn" : undefined}>
                     {l.duree !== null ? fmtDuree(l.duree) : (l.manquant ? "à saisir" : "—")}
                   </td>
+                  <td>{l.v.p || "—"}</td>
                   <td className={l.manquant ? "warn" : undefined}>
                     {l.cu !== null ? fmtDuree(l.cu) : (l.manquant ? "à saisir" : "—")}
                   </td>
@@ -110,8 +110,8 @@ export default function FicheMoisDetail() {
               <tr className="total">
                 <td></td>
                 <td>Total national</td>
-                <td>{totP} participants</td>
                 <td>{fmtDuree(totT)}</td>
+                <td>{totP} participants</td>
                 <td style={{ color: "var(--muted)" }}>{fmtDuree(totC)}</td>
               </tr>
             </tfoot>

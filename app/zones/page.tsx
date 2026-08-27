@@ -210,8 +210,8 @@ export default function Zones() {
               <tr>
                 <th className="ncol">N°</th>
                 <th>Zone</th>
-                <th>Participant(s)</th>
                 <th>Temps mis</th>
+                <th>Participant(s)</th>
                 <th>Cumul</th>
               </tr>
             </thead>
@@ -227,13 +227,13 @@ export default function Zones() {
                   <tr key={z.id} className={tempsManquant ? "manquant" : undefined}>
                     <td className="ncol">{i + 1}</td>
                     <td>{z.nom}</td>
-                    <td>
-                      <input type="number" min="1" value={v.p}
-                        onChange={(e) => setVal(z.id, { p: e.target.value })} />
-                    </td>
                     <td className={tempsManquant ? "warn" : undefined}>
                       <input type="text" inputMode="numeric" placeholder="02:00" value={v.t}
                         onChange={(e) => setVal(z.id, { t: formatDureeInput(e.target.value) })} />
+                    </td>
+                    <td>
+                      <input type="number" min="1" value={v.p}
+                        onChange={(e) => setVal(z.id, { p: e.target.value })} />
                     </td>
                     <td className={tempsManquant ? "warn" : undefined}>
                       {cu !== null ? fmtDuree(cu) : (tempsManquant ? "à saisir" : "—")}
@@ -246,8 +246,8 @@ export default function Zones() {
               <tr className="total">
                 <td></td>
                 <td>Total national</td>
-                <td>{totaux.totP} participants</td>
                 <td>{fmtDuree(totaux.totT)}</td>
+                <td>{totaux.totP} participants</td>
                 <td style={{ color: "var(--muted)" }}>{fmtDuree(totaux.totC)}</td>
               </tr>
             </tfoot>
