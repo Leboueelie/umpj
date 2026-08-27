@@ -22,7 +22,7 @@ export default function FicheMoisDetail() {
   const mois = String(params.mois || "");
   const [zones, setZones] = useState<Zone[]>([]);
   const [vals, setVals] = useState<Record<string, Val>>({});
-  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number }[]>([]);
+  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number; totT: number }[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function FicheMoisDetail() {
             t: fmtMinToHeure(r.tempsMis),
           };
         setVals(init);
-        const rc = await api<{ mois: string; totP: number; totC: number }[]>("/api/zones/recap");
+        const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
         setRecap(rc);
       } catch (e) {
         setError((e as Error).message);

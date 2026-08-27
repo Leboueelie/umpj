@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
+import { moisLabel } from "@/lib/mois";
 import { parseImportZonesFile } from "@/lib/excel";
 
 function formatTimeInput(raw: string): string {
@@ -53,7 +54,7 @@ export default function Zones() {
   const [saved, setSaved] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [newZone, setNewZone] = useState("");
-  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number }[]>([]);
+  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number; totT: number }[]>([]);
   const [importing, setImporting] = useState(false);
   const [msg, setMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +69,7 @@ export default function Zones() {
   }, []);
 
   async function loadRecap() {
-    try { setRecap(await api<{ mois: string; totP: number; totC: number }[]>("/api/zones/recap")); }
+    try { setRecap(await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap")); }
     catch {}
   }
 
@@ -321,26 +322,29 @@ export default function Zones() {
               <tr>
                 <th>Mois</th>
                 <th>Total participants</th>
+                <th>Total temps mis</th>
                 <th>Total cumul</th>
               </tr>
             </thead>
             <tbody>
               {recap.map((r) => (
                 <tr key={r.mois}>
-                  <td>{r.mois}</td>
+                  <td>{moisLabel(r.mois)}</td>
                   <td>{r.totP}</td>
-                  <td>{fmtDuree(r.totC)}</td>
+                  <td>{fmtDuree(r.totT || 0)}</td>
+                  <td style={{ color: "var(--muted)" }}>{fmtDuree(r.totC)}</td>
                 </tr>
               ))}
               {recap.length === 0 && (
-                <tr><td colSpan={3} className="empty">Aucune donnée enregistrée.</td></tr>
+                <tr><td colSpan={4} className="empty">Aucune donnée enregistrée.</td></tr>
               )}
             </tbody>
             <tfoot>
               <tr className="total">
                 <td>Total général</td>
                 <td>{recap.reduce((a, r) => a + r.totP, 0)}</td>
-                <td>{fmtDuree(recap.reduce((a, r) => a + r.totC, 0))}</td>
+                <td>{fmtDuree(recap.reduce((a, r) => a + (r.totT || 0), 0))}</td>
+                <td style={{ color: "var(--muted)" }}>{fmtDuree(recap.reduce((a, r) => a + r.totC, 0))}</td>
               </tr>
             </tfoot>
           </table>

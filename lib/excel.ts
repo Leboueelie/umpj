@@ -194,7 +194,7 @@ export async function parseImportFile(file: File): Promise<ImportedCahier[]> {
 // ---- Fiche zones ----
 
 interface ZoneVal { d: string; f: string; p: string; t: string; }
-interface RecapMois { mois: string; totP: number; totC: number; }
+interface RecapMois { mois: string; totP: number; totC: number; totT: number; }
 
 export async function exportFicheZones(
   mois: string,
@@ -206,6 +206,7 @@ export async function exportFicheZones(
   const aoa: unknown[][] = [["N°", "Zone", "Début", "Fin", "Participant(s)", "Temps mis", "Cumul"]];
   let totP = 0;
   let totC = 0;
+  let totT = 0;
 
   zones.forEach((z, i) => {
     const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
@@ -215,6 +216,7 @@ export async function exportFicheZones(
     const p = parseInt(v.p || "0", 10);
     const cumul = duree !== null && p >= 1 ? duree * p : null;
     if (p >= 1) totP += p;
+    if (duree !== null) totT += duree;
     if (cumul) totC += cumul;
 
     const debutCell = v.d
@@ -239,7 +241,7 @@ export async function exportFicheZones(
     "",
     "",
     `${totP} participants`,
-    "",
+    { t: "n", v: totT / 1440, z: DUREE_FMT },
     { t: "n", v: totC / 1440, z: DUREE_FMT },
   ]);
 
@@ -255,22 +257,30 @@ export async function exportFicheZones(
   XLSX.utils.book_append_sheet(wb, ws, "Fiche " + mois);
 
   // Feuille récapitulatif multi-mois
-  const recapAoa: unknown[][] = [["Mois", "Total participants", "Total cumul"]];
+  const recapAoa: unknown[][] = [["Mois", "Total participants", "Total temps mis", "Total cumul"]];
   let gtP = 0;
   let gtC = 0;
+  let gtT = 0;
   for (const r of recap) {
     gtP += r.totP;
     gtC += r.totC;
-    recapAoa.push([r.mois, r.totP, { t: "n", v: r.totC / 1440, z: DUREE_FMT }]);
+    gtT += r.totT || 0;
+    recapAoa.push([
+      r.mois,
+      r.totP,
+      { t: "n", v: (r.totT || 0) / 1440, z: DUREE_FMT },
+      { t: "n", v: r.totC / 1440, z: DUREE_FMT },
+    ]);
   }
   recapAoa.push([
     "Total général",
     gtP,
+    { t: "n", v: gtT / 1440, z: DUREE_FMT },
     { t: "n", v: gtC / 1440, z: DUREE_FMT },
   ]);
   const recapWs: any = XLSX.utils.aoa_to_sheet(recapAoa as any);
-  recapWs["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
-  recapWs["!autofilter"] = { ref: "A1:C" + (recap.length + 1) };
+  recapWs["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 15 }, { wch: 14 }];
+  recapWs["!autofilter"] = { ref: "A1:D" + (recap.length + 1) };
   XLSX.utils.book_append_sheet(wb, recapWs, "Récapitulatif");
 
   XLSX.writeFile(wb, `fiche-zones-${mois}.xlsx`);

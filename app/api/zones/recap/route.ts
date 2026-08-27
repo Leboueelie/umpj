@@ -6,7 +6,7 @@ export async function GET() {
   const r = await pool.query(
     `SELECT "mois","heureDebut","heureFin","tempsMis","participants" FROM "EntreeZone"`
   );
-  const map: Record<string, { mois: string; totP: number; totC: number }> = {};
+  const map: Record<string, { mois: string; totP: number; totC: number; totT: number }> = {};
   for (const row of r.rows) {
     const duree =
       tempsMisMin(row.heureDebut || "", row.heureFin || "") ??
@@ -14,8 +14,9 @@ export async function GET() {
     const p = row.participants || 0;
     const cu = duree != null && p >= 1 ? duree * p : 0;
     const m = row.mois;
-    if (!map[m]) map[m] = { mois: m, totP: 0, totC: 0 };
+    if (!map[m]) map[m] = { mois: m, totP: 0, totC: 0, totT: 0 };
     if (p >= 1) map[m].totP += p;
+    if (duree != null) map[m].totT += duree;
     map[m].totC += cu;
   }
   const recap = Object.values(map).sort((a, b) => a.mois.localeCompare(b.mois));
