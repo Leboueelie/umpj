@@ -354,6 +354,7 @@ export interface ImportedEdition {
   anciensAbidjan: number;
   epousesAnciensAbidjan: number;
   moyenneParticipation: number;
+  heuresInvesties?: number;
   delegationsExterieures: string[];
   abidjanZones: string[];
   interieurLocalites: string[];

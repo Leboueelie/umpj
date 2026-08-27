@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     }
     if (!ed.numero || !ed.dateDebut || !ed.dateFin)
       return NextResponse.json({ error: "Le fichier doit contenir numero, dateDebut et dateFin." }, { status: 400 });
-    const heuresInvesties = ed.sessions.reduce((a, s) => a + (s.dureeMinutes || 0), 0);
+    const heuresInvesties = ed.heuresInvesties || ed.sessions.reduce((a, s) => a + (s.dureeMinutes || 0), 0);
     const r = await pool.query(
       `INSERT INTO "Edition"
         ("numero","reference","dateDebut","dateFin","libellePeriode",
