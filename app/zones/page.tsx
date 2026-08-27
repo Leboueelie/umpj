@@ -5,19 +5,10 @@ import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree } from "@/lib/calc";
 
-const MOIS_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
-
 function formatTimeInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 4);
   if (d.length <= 2) return d;
   return d.slice(0, 2) + ":" + d.slice(2, 4);
-}
-function labelMois(ym: string): string {
-  const [y, m] = ym.split("-");
-  return `${MOIS_FR[parseInt(m, 10) - 1]} ${y}`;
 }
 function shiftMois(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
@@ -44,7 +35,6 @@ async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
 export default function Zones() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [mois, setMois] = useState<string>(moisCourant());
-  const [moisDispo, setMoisDispo] = useState<string[]>([]);
   const [vals, setVals] = useState<Record<string, Val>>({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -52,15 +42,12 @@ export default function Zones() {
   const [manageOpen, setManageOpen] = useState(false);
   const [newZone, setNewZone] = useState("");
 
-  useEffect(() => { loadZones(); loadMois(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadZones(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { if (zones.length) loadEntrees(); /* eslint-disable-next-line */ }, [mois, zones]);
 
   async function loadZones() {
     try { const z = await api<Zone[]>("/api/zones"); setZones(z); }
     catch (e) { setError((e as Error).message); }
-  }
-  async function loadMois() {
-    try { const m = await api<string[]>("/api/zones/mois"); setMoisDispo(m); } catch {}
   }
   async function loadEntrees() {
     const init: Record<string, Val> = {};
@@ -89,11 +76,6 @@ export default function Zones() {
     return { totP, totC };
   }, [zones, vals]);
 
-  const moisOptions = useMemo(
-    () => Array.from(new Set([...moisDispo, moisCourant()])).sort().reverse(),
-    [moisDispo]
-  );
-
   async function save() {
     setSaving(true); setError(""); setSaved(false);
     try {
@@ -108,7 +90,6 @@ export default function Zones() {
         body: JSON.stringify({ mois, entrees }),
       });
       setSaved(true);
-      await loadMois();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
   }
@@ -149,11 +130,12 @@ export default function Zones() {
       <div className="card">
         <div className="month-nav">
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, -1))} aria-label="Mois précédent">‹</button>
-          <select value={mois} onChange={(e) => setMois(e.target.value)}>
-            {moisOptions.map((m) => (
-              <option key={m} value={m}>{labelMois(m)}</option>
-            ))}
-          </select>
+          <input
+            type="month"
+            className="month-input"
+            value={mois}
+            onChange={(e) => e.target.value && setMois(e.target.value)}
+          />
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, 1))} aria-label="Mois suivant">›</button>
         </div>
 
