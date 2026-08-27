@@ -103,15 +103,16 @@ export default function Zones() {
   }
 
   const totaux = useMemo(() => {
-    let totP = 0, totC = 0;
+    let totP = 0, totC = 0, totT = 0;
     for (const z of zones) {
       const v = vals[z.id]; if (!v) continue;
       const tm = tempsMisMin(v.d, v.f);
       const duree = tm ?? parseDureeMinutes(v.t);
       const p = parseInt(v.p || "0", 10);
+      if (duree !== null) totT += duree;
       if (duree !== null && p >= 1) { totP += p; totC += cumulMin(duree, p) || 0; }
     }
-    return { totP, totC };
+    return { totP, totC, totT };
   }, [zones, vals]);
 
   async function save() {
@@ -283,8 +284,8 @@ export default function Zones() {
                 <td></td>
                 <td></td>
                 <td>{totaux.totP} participants</td>
-                <td></td>
-                <td>{fmtDuree(totaux.totC)}</td>
+                <td>{fmtDuree(totaux.totT)}</td>
+                <td style={{ color: "var(--muted)" }}>{fmtDuree(totaux.totC)}</td>
               </tr>
             </tfoot>
           </table>

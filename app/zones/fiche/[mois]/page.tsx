@@ -56,6 +56,7 @@ export default function FicheMoisDetail() {
 
   let totP = 0;
   let totC = 0;
+  let totT = 0;
   const lignes = zones.map((z) => {
     const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
     const tm = tempsMisMin(v.d, v.f);
@@ -65,6 +66,7 @@ export default function FicheMoisDetail() {
     const aP = p >= 1;
     const manquant = aP && duree === null;
     const cu = duree !== null && aP ? cumulMin(duree, p) : null;
+    if (duree !== null) totT += duree;
     if (aP) totP += p;
     if (cu) totC += cu;
     return { z, v, duree, manquant, cu };
@@ -119,8 +121,8 @@ export default function FicheMoisDetail() {
                 <td></td>
                 <td></td>
                 <td>{totP} participants</td>
-                <td></td>
-                <td>{fmtDuree(totC)}</td>
+                <td>{fmtDuree(totT)}</td>
+                <td style={{ color: "var(--muted)" }}>{fmtDuree(totC)}</td>
               </tr>
             </tfoot>
           </table>
