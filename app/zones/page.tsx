@@ -21,6 +21,17 @@ function moisCourant(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const MOIS_FR = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+function anneesDispo(): string[] {
+  const y = new Date().getFullYear();
+  const out: string[] = [];
+  for (let a = y - 10; a <= y + 10; a++) out.push(String(a));
+  return out;
+}
+
 interface Val { d: string; f: string; p: string; t: string; }
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
@@ -182,12 +193,28 @@ export default function Zones() {
       <div className="card">
         <div className="month-nav">
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, -1))} aria-label="Mois précédent">‹</button>
-          <input
-            type="month"
-            className="month-input"
-            value={mois}
-            onChange={(e) => e.target.value && setMois(e.target.value)}
-          />
+          <select
+            value={Number(mois.slice(5, 7))}
+            onChange={(e) =>
+              setMois(`${mois.slice(0, 4)}-${String(e.target.value).padStart(2, "0")}`)
+            }
+            aria-label="Mois"
+          >
+            {MOIS_FR.map((m, i) => (
+              <option key={i} value={i + 1}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={mois.slice(0, 4)}
+            onChange={(e) =>
+              setMois(`${e.target.value}-${mois.slice(5, 7)}`)
+            }
+            aria-label="Année"
+          >
+            {anneesDispo().map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, 1))} aria-label="Mois suivant">›</button>
         </div>
 
