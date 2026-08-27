@@ -3,14 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
+import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { parseImportZonesFile } from "@/lib/excel";
 
-function formatTimeInput(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 4);
-  if (d.length <= 2) return d;
-  return d.slice(0, 2) + ":" + d.slice(2, 4);
-}
 function shiftMois(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
@@ -32,7 +27,7 @@ function anneesDispo(): string[] {
   return out;
 }
 
-interface Val { d: string; f: string; p: string; t: string; }
+interface Val { p: string; t: string; }
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -76,13 +71,11 @@ export default function Zones() {
   async function loadEntrees(zl?: Zone[]) {
     const list = zl && zl.length ? zl : zones;
     const init: Record<string, Val> = {};
-    for (const z of list) init[z.id] = { d: "", f: "", p: "", t: "" };
+    for (const z of list) init[z.id] = { p: "", t: "" };
     try {
       const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
       for (const r of rows)
         init[r.zoneId] = {
-          d: r.heureDebut,
-          f: r.heureFin,
           p: String(r.participants),
           t: fmtMinToHeure(r.tempsMis),
         };
@@ -91,7 +84,7 @@ export default function Zones() {
   }
 
   function setVal(zoneId: string, patch: Partial<Val>) {
-    setVals((v) => ({ ...v, [zoneId]: { ...(v[zoneId] || { d: "", f: "", p: "", t: "" }), ...patch } }));
+    setVals((v) => ({ ...v, [zoneId]: { ...(v[zoneId] || { p: "", t: "" }), ...patch } }));
     setSaved(false);
   }
 
@@ -99,8 +92,7 @@ export default function Zones() {
     let totP = 0, totC = 0, totT = 0;
     for (const z of zones) {
       const v = vals[z.id]; if (!v) continue;
-      const tm = tempsMisMin(v.d, v.f);
-      const duree = tm ?? parseDureeMinutes(v.t);
+      const duree = parseDureeMinutes(v.t);
       const p = parseInt(v.p || "0", 10);
       if (duree !== null) totT += duree;
       if (duree !== null && p >= 1) { totP += p; totC += cumulMin(duree, p) || 0; }
@@ -113,8 +105,6 @@ export default function Zones() {
     try {
       const entrees = zones.map((z) => ({
         zoneId: z.id,
-        heureDebut: vals[z.id]?.d || "",
-        heureFin: vals[z.id]?.f || "",
         tempsMis: vals[z.id]?.t || "",
         participants: parseInt(vals[z.id]?.p || "0", 10),
       }));
@@ -220,8 +210,6 @@ export default function Zones() {
               <tr>
                 <th className="ncol">N°</th>
                 <th>Zone</th>
-                <th>Début</th>
-                <th>Fin</th>
                 <th>Participant(s)</th>
                 <th>Temps mis</th>
                 <th>Cumul</th>
@@ -229,10 +217,8 @@ export default function Zones() {
             </thead>
             <tbody>
               {zones.map((z, i) => {
-                const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
-                const tmCalcule = tempsMisMin(v.d, v.f);
-                const direct = parseDureeMinutes(v.t);
-                const duree = tmCalcule ?? direct;
+                const v = vals[z.id] || { p: "", t: "" };
+                const duree = parseDureeMinutes(v.t);
                 const p = parseInt(v.p || "0", 10);
                 const aDesParticipants = p >= 1;
                 const tempsManquant = aDesParticipants && duree === null;
@@ -242,24 +228,12 @@ export default function Zones() {
                     <td className="ncol">{i + 1}</td>
                     <td>{z.nom}</td>
                     <td>
-                      <input type="text" inputMode="numeric" placeholder="08:00" value={v.d}
-                        onChange={(e) => setVal(z.id, { d: formatTimeInput(e.target.value) })} />
-                    </td>
-                    <td>
-                      <input type="text" inputMode="numeric" placeholder="20:00" value={v.f}
-                        onChange={(e) => setVal(z.id, { f: formatTimeInput(e.target.value) })} />
-                    </td>
-                    <td>
                       <input type="number" min="1" value={v.p}
                         onChange={(e) => setVal(z.id, { p: e.target.value })} />
                     </td>
                     <td className={tempsManquant ? "warn" : undefined}>
-                      {tmCalcule !== null ? (
-                        <span className="readonly">{fmtDuree(tmCalcule)}</span>
-                      ) : (
-                        <input type="text" inputMode="numeric" placeholder="02:00" value={v.t}
-                          onChange={(e) => setVal(z.id, { t: formatDureeInput(e.target.value) })} />
-                      )}
+                      <input type="text" inputMode="numeric" placeholder="02:00" value={v.t}
+                        onChange={(e) => setVal(z.id, { t: formatDureeInput(e.target.value) })} />
                     </td>
                     <td className={tempsManquant ? "warn" : undefined}>
                       {cu !== null ? fmtDuree(cu) : (tempsManquant ? "à saisir" : "—")}
@@ -272,8 +246,6 @@ export default function Zones() {
               <tr className="total">
                 <td></td>
                 <td>Total national</td>
-                <td></td>
-                <td></td>
                 <td>{totaux.totP} participants</td>
                 <td>{fmtDuree(totaux.totT)}</td>
                 <td style={{ color: "var(--muted)" }}>{fmtDuree(totaux.totC)}</td>

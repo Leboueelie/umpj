@@ -86,8 +86,6 @@ CREATE TABLE IF NOT EXISTS "EntreeZone" (
   "id" TEXT NOT NULL,
   "zoneId" TEXT NOT NULL,
   "mois" TEXT NOT NULL,
-  "heureDebut" TEXT,
-  "heureFin" TEXT,
   "tempsMis" INTEGER,
   "participants" INTEGER NOT NULL DEFAULT 0,
   CONSTRAINT "EntreeZone_pkey" PRIMARY KEY ("id"),
@@ -107,9 +105,9 @@ async function main() {
   await pool.query(`
     DO $$
     BEGIN
-      BEGIN ALTER TABLE "EntreeZone" ALTER COLUMN "heureDebut" DROP NOT NULL; EXCEPTION WHEN others THEN END;
-      BEGIN ALTER TABLE "EntreeZone" ALTER COLUMN "heureFin" DROP NOT NULL; EXCEPTION WHEN others THEN END;
       BEGIN ALTER TABLE "EntreeZone" ADD COLUMN "tempsMis" INTEGER; EXCEPTION WHEN duplicate_column THEN END;
+      BEGIN ALTER TABLE "EntreeZone" DROP COLUMN IF EXISTS "heureDebut"; EXCEPTION WHEN others THEN END;
+      BEGIN ALTER TABLE "EntreeZone" DROP COLUMN IF EXISTS "heureFin"; EXCEPTION WHEN others THEN END;
     END $$;
   `);
 

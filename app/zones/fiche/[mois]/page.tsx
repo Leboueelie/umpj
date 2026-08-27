@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Zone } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
+import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
 import { moisLabel } from "@/lib/mois";
 import { exportFicheZones } from "@/lib/excel";
 
-interface Val { d: string; f: string; p: string; t: string; }
+interface Val { p: string; t: string; }
 
 async function api<T = any>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
@@ -31,12 +31,10 @@ export default function FicheMoisDetail() {
         const z = await api<Zone[]>("/api/zones");
         setZones(z);
         const init: Record<string, Val> = {};
-        for (const x of z) init[x.id] = { d: "", f: "", p: "", t: "" };
+        for (const x of z) init[x.id] = { p: "", t: "" };
         const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
         for (const r of rows)
           init[r.zoneId] = {
-            d: r.heureDebut,
-            f: r.heureFin,
             p: String(r.participants),
             t: fmtMinToHeure(r.tempsMis),
           };
@@ -58,10 +56,8 @@ export default function FicheMoisDetail() {
   let totC = 0;
   let totT = 0;
   const lignes = zones.map((z) => {
-    const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
-    const tm = tempsMisMin(v.d, v.f);
-    const direct = parseDureeMinutes(v.t);
-    const duree = tm ?? direct;
+    const v = vals[z.id] || { p: "", t: "" };
+    const duree = parseDureeMinutes(v.t);
     const p = parseInt(v.p || "0", 10);
     const aP = p >= 1;
     const manquant = aP && duree === null;
@@ -90,8 +86,6 @@ export default function FicheMoisDetail() {
               <tr>
                 <th className="ncol">N°</th>
                 <th>Zone</th>
-                <th>Début</th>
-                <th>Fin</th>
                 <th>Participant(s)</th>
                 <th>Temps mis</th>
                 <th>Cumul</th>
@@ -102,8 +96,6 @@ export default function FicheMoisDetail() {
                 <tr key={l.z.id} className={l.manquant ? "manquant" : undefined}>
                   <td className="ncol">{i + 1}</td>
                   <td>{l.z.nom}</td>
-                  <td>{l.v.d || "—"}</td>
-                  <td>{l.v.f || "—"}</td>
                   <td>{l.v.p || "—"}</td>
                   <td className={l.manquant ? "warn" : undefined}>
                     {l.duree !== null ? fmtDuree(l.duree) : (l.manquant ? "à saisir" : "—")}
@@ -118,8 +110,6 @@ export default function FicheMoisDetail() {
               <tr className="total">
                 <td></td>
                 <td>Total national</td>
-                <td></td>
-                <td></td>
                 <td>{totP} participants</td>
                 <td>{fmtDuree(totT)}</td>
                 <td style={{ color: "var(--muted)" }}>{fmtDuree(totC)}</td>

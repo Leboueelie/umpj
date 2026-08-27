@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { tempsMisMin, normalizeHeure, parseDureeMinutes } from "@/lib/calc";
+import { parseDureeMinutes } from "@/lib/calc";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -35,12 +35,9 @@ export async function POST(req: Request) {
         zoneId = ins.rows[0].id;
         zonesCrees++;
       }
-      const debut = normalizeHeure(String(l.debut ?? ""));
-      const fin = normalizeHeure(String(l.fin ?? ""));
       const participants = parseInt(l.participants, 10);
       const tempsMis = parseDureeMinutes(String(l.tempsMis ?? ""));
-      const dureeCalculee = tempsMisMin(debut || "", fin || "");
-      const duree = dureeCalculee ?? tempsMis;
+      const duree = tempsMis;
       const aParticipants = participants >= 1;
       const aDuree = duree !== null;
 
@@ -58,16 +55,16 @@ export async function POST(req: Request) {
       );
       if (ex.rowCount && ex.rowCount > 0) {
         await client.query(
-          `UPDATE "EntreeZone" SET "heureDebut"=$1,"heureFin"=$2,"tempsMis"=$3,"participants"=$4
-           WHERE "zoneId"=$5 AND "mois"=$6`,
-          [debut, fin, tempsMis, participants, zoneId, mois]
+          `UPDATE "EntreeZone" SET "tempsMis"=$1,"participants"=$2
+           WHERE "zoneId"=$3 AND "mois"=$4`,
+          [tempsMis, participants, zoneId, mois]
         );
         maj++;
       } else {
         await client.query(
-          `INSERT INTO "EntreeZone"("id","zoneId","mois","heureDebut","heureFin","tempsMis","participants")
-           VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,$6)`,
-          [zoneId, mois, debut, fin, tempsMis, participants]
+          `INSERT INTO "EntreeZone"("id","zoneId","mois","tempsMis","participants")
+           VALUES (gen_random_uuid(),$1,$2,$3,$4)`,
+          [zoneId, mois, tempsMis, participants]
         );
         creees++;
       }

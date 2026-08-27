@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { tempsMisMin } from "@/lib/calc";
 
 export async function GET() {
   const r = await pool.query(
-    `SELECT "mois","heureDebut","heureFin","tempsMis","participants" FROM "EntreeZone"`
+    `SELECT "mois","tempsMis","participants" FROM "EntreeZone"`
   );
   const map: Record<string, { mois: string; totP: number; totC: number; totT: number }> = {};
   for (const row of r.rows) {
-    const duree =
-      tempsMisMin(row.heureDebut || "", row.heureFin || "") ??
-      (row.tempsMis != null ? row.tempsMis : null);
+    const duree = row.tempsMis != null ? row.tempsMis : null;
     const p = row.participants || 0;
     const cu = duree != null && p >= 1 ? duree * p : 0;
     const m = row.mois;

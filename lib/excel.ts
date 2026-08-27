@@ -193,7 +193,7 @@ export async function parseImportFile(file: File): Promise<ImportedCahier[]> {
 
 // ---- Fiche zones ----
 
-interface ZoneVal { d: string; f: string; p: string; t: string; }
+interface ZoneVal { p: string; t: string; }
 interface RecapMois { mois: string; totP: number; totC: number; totT: number; }
 
 export async function exportFicheZones(
@@ -203,28 +203,20 @@ export async function exportFicheZones(
   recap: RecapMois[]
 ) {
   const XLSX = await import("xlsx");
-  const aoa: unknown[][] = [["N°", "Zone", "Début", "Fin", "Participant(s)", "Temps mis", "Cumul"]];
+  const aoa: unknown[][] = [["N°", "Zone", "Participant(s)", "Temps mis", "Cumul"]];
   let totP = 0;
   let totC = 0;
   let totT = 0;
 
   zones.forEach((z, i) => {
-    const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
-    const tm = tempsMisMin(v.d, v.f);
-    const direct = parseDureeMinutes(v.t);
-    const duree = tm ?? direct;
+    const v = vals[z.id] || { p: "", t: "" };
+    const duree = parseDureeMinutes(v.t);
     const p = parseInt(v.p || "0", 10);
     const cumul = duree !== null && p >= 1 ? duree * p : null;
     if (p >= 1) totP += p;
     if (duree !== null) totT += duree;
     if (cumul) totC += cumul;
 
-    const debutCell = v.d
-      ? { t: "n" as const, v: (toMin(v.d) || 0) / 1440, z: TIME_FMT }
-      : "";
-    const finCell = v.f
-      ? { t: "n" as const, v: (toMin(v.f) || 0) / 1440, z: TIME_FMT }
-      : "";
     const tmCell = duree !== null
       ? { t: "n" as const, v: duree / 1440, z: DUREE_FMT }
       : "";
@@ -232,13 +224,11 @@ export async function exportFicheZones(
       ? { t: "n" as const, v: cumul / 1440, z: DUREE_FMT }
       : "";
 
-    aoa.push([i + 1, z.nom, debutCell, finCell, p >= 1 ? p : "", tmCell, cuCell]);
+    aoa.push([i + 1, z.nom, p >= 1 ? p : "", tmCell, cuCell]);
   });
 
   aoa.push([
     "Total national",
-    "",
-    "",
     "",
     `${totP} participants`,
     { t: "n", v: totT / 1440, z: DUREE_FMT },
@@ -247,9 +237,9 @@ export async function exportFicheZones(
 
   const ws: any = XLSX.utils.aoa_to_sheet(aoa as any);
   ws["!cols"] = [
-    { wch: 5 }, { wch: 26 }, { wch: 9 }, { wch: 9 }, { wch: 15 }, { wch: 11 }, { wch: 11 },
+    { wch: 5 }, { wch: 26 }, { wch: 15 }, { wch: 11 }, { wch: 11 },
   ];
-  ws["!autofilter"] = { ref: "A1:G" + (zones.length + 1) };
+  ws["!autofilter"] = { ref: "A1:E" + (zones.length + 1) };
 
   const wb = XLSX.utils.book_new();
   wb.Workbook = (wb.Workbook || {}) as any;
@@ -299,8 +289,6 @@ function parseDureeCell(cell: any): string {
 
 export interface ImportedFicheZone {
   zone: string;
-  debut: string;
-  fin: string;
   participants: number;
   tempsMis: string;
 }
@@ -323,10 +311,7 @@ export async function parseImportZonesFile(file: File): Promise<ImportedFicheZon
     let headerIdx = -1;
     for (let i = 0; i < Math.min(rows.length, 6); i++) {
       const r = rows[i].map((c) => String(c).toLowerCase());
-      if (
-        r.includes("zone") &&
-        (r.includes("début") || r.includes("debut") || r.includes("temps mis") || r.includes("temps"))
-      ) {
+      if (r.includes("zone") && (r.includes("temps") || r.includes("particip"))) {
         headerIdx = i;
         break;
       }
@@ -335,8 +320,6 @@ export async function parseImportZonesFile(file: File): Promise<ImportedFicheZon
 
     const header = rows[headerIdx].map((c) => String(c).toLowerCase());
     const ciZone = header.findIndex((h) => h.includes("zone"));
-    const ciDeb = header.findIndex((h) => h.includes("début") || h.includes("debut"));
-    const ciFin = header.findIndex((h) => h.includes("fin"));
     const ciTm = header.findIndex((h) => h.includes("temps"));
     const ciPart = header.findIndex((h) =>
       /particip|personne|effectif|nombre|membre|nb/.test(h)
@@ -348,11 +331,9 @@ export async function parseImportZonesFile(file: File): Promise<ImportedFicheZon
       const zone = String(row[ciZone] ?? "").trim();
       if (!zone) continue;
       if (/^total /i.test(zone)) continue; // saute la ligne "Total national"
-      const debut = ciDeb >= 0 ? parseTime(row[ciDeb]) : "";
-      const fin = ciFin >= 0 ? parseTime(row[ciFin]) : "";
       const tempsMis = ciTm >= 0 ? parseDureeCell(row[ciTm]) : "";
       const participants = ciPart >= 0 ? parseInt(String(row[ciPart] ?? "0"), 10) || 0 : 0;
-      out.push({ zone, debut, fin, participants, tempsMis });
+      out.push({ zone, participants, tempsMis });
     }
   }
   return out;
