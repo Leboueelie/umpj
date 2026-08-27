@@ -124,28 +124,39 @@ export function buildEditionPdfBuffer(e: Edition): Promise<Buffer> {
     ensure(90);
     doc.font("Helvetica-Bold").fontSize(12);
     doc.text("II.  INVESTISSEMENT DANS LA PRIERE", margin, y);
-    y += 18;
+    y += 22;
     doc.font("Helvetica").fontSize(10);
     doc.text(clean(`NOMBRE D'HEURES INVESTIES : ${fmtHMN(e.heuresInvesties)}`), margin, y, { width: pageW - 2 * margin });
     y += 20;
 
     const colXs = [margin, margin + 70, margin + 150, margin + 310, margin + 410, pageW - margin];
     const headers = ["SESSIONS", "NOMBRE DE SESSIONS", "PERIODES", "DUREE (heures)", "PARTICIPANTS"];
-    doc.font("Helvetica-Bold");
+    doc.font("Helvetica-Bold").fontSize(9);
+    const headH = Math.max(
+      12,
+      ...headers.map((h, i) => doc.heightOfString(clean(h), { width: colXs[i + 1] - colXs[i] - 4 }))
+    );
     headers.forEach((h, i) => doc.text(clean(h), colXs[i], y, { width: colXs[i + 1] - colXs[i] - 4 }));
-    doc.font("Helvetica");
-    y += 16;
+    y += headH + 6;
+
+    doc.font("Helvetica").fontSize(10);
     for (const s of e.sessions) {
-      ensure(16);
       const row = [s.date, `${s.nbSessions} Sessions`, s.periodes, fmtHMN(s.dureeMinutes), String(s.participants)];
+      const rh = Math.max(
+        12,
+        ...row.map((c, i) => doc.heightOfString(clean(String(c)), { width: colXs[i + 1] - colXs[i] - 4 }))
+      );
+      ensure(rh + 6);
       row.forEach((c, i) => doc.text(clean(String(c)), colXs[i], y, { width: colXs[i + 1] - colXs[i] - 4 }));
-      y += 16;
+      doc.moveTo(margin, y + rh + 2).lineTo(pageW - margin, y + rh + 2).strokeColor("#dddddd").lineWidth(0.5).stroke();
+      y += rh + 6;
     }
-    ensure(16);
-    doc.font("Helvetica-Bold");
+    ensure(20);
+    doc.font("Helvetica-Bold").fontSize(10);
     doc.text("TOTAL", colXs[0], y, { width: colXs[1] - colXs[0] - 4 });
     doc.text(fmtHMN(e.heuresInvesties), colXs[3], y, { width: colXs[4] - colXs[3] - 4 });
     doc.text(`${e.moyenneParticipation} (EN MOYENNE)`, colXs[4], y, { width: colXs[5] - colXs[4] - 4 });
+    y += 18;
     doc.font("Helvetica");
 
     doc.end();
