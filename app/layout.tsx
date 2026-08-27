@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MAISON DE PRIERE D'ABIDJAN POUR TOUTES LES NATIONS",
-  description: "Registres de temps de prière",
+  title: "UMPJ",
+  description: "Université Mondiale de la Prière et du Jeûne",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

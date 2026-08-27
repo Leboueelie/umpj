@@ -1,4 +1,5 @@
 import fs from "fs";
+import { randomUUID } from "crypto";
 import { Pool } from "pg";
 
 for (const l of fs.readFileSync(".env", "utf8").split("\n")) {
@@ -12,6 +13,41 @@ if (!process.env.DATABASE_URL) {
 }
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, family: 4 });
+
+const ZONES = [
+  "ABATA-AKOUEDO",
+  "ABOBO",
+  "ADJAME-ATTECOUBE-WYLLY",
+  "ANYAMA",
+  "ATTOBAN-BONOUMIN",
+  "BINGERVILLE COCODY",
+  "JULES VERNES-CITE SIR",
+  "KOUMASSI",
+  "MARCORY-TREICHVILLE",
+  "M'POUTO",
+  "PORT-BOUET",
+  "RIVERA 2",
+  "ROSIERS",
+  "PALMERAIE",
+  "YOPOUGON",
+  "AGNEBY TIASSA",
+  "BAS SASSANDRA",
+  "BELIER",
+  "CAVALY",
+  "GBEKE",
+  "GOH",
+  "GONTOUGO",
+  "GRAND PONT",
+  "HAUT SASSANDRA",
+  "IFFOU INDENIE DJUABLIN",
+  "KABADOUGOU",
+  "SUD COMOE",
+  "LOH DJIBOUA",
+  "MARAHOUE",
+  "PORO",
+  "TONKPI",
+  "WORODOUGOU",
+];
 
 const sql = `
 CREATE TABLE IF NOT EXISTS "Cahier" (
@@ -36,12 +72,51 @@ CREATE INDEX IF NOT EXISTS "Ligne_cahierId_idx" ON "Ligne"("cahierId");
 ALTER TABLE "Ligne" DROP CONSTRAINT IF EXISTS "Ligne_cahierId_fkey";
 ALTER TABLE "Ligne" ADD CONSTRAINT "Ligne_cahierId_fkey"
   FOREIGN KEY ("cahierId") REFERENCES "Cahier"("id") ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS "Zone" (
+  "id" TEXT NOT NULL,
+  "nom" TEXT NOT NULL,
+  "ordre" INTEGER NOT NULL DEFAULT 0,
+  CONSTRAINT "Zone_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "EntreeZone" (
+  "id" TEXT NOT NULL,
+  "zoneId" TEXT NOT NULL,
+  "mois" TEXT NOT NULL,
+  "heureDebut" TEXT NOT NULL,
+  "heureFin" TEXT NOT NULL,
+  "participants" INTEGER NOT NULL,
+  CONSTRAINT "EntreeZone_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "EntreeZone_zone_mois_key" UNIQUE ("zoneId","mois")
+);
+
+CREATE INDEX IF NOT EXISTS "EntreeZone_mois_idx" ON "EntreeZone"("mois");
+
+ALTER TABLE "EntreeZone" DROP CONSTRAINT IF EXISTS "EntreeZone_zoneId_fkey";
+ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
+  FOREIGN KEY ("zoneId") REFERENCES "Zone"("id") ON DELETE CASCADE;
 `;
 
 async function main() {
   await pool.query(sql);
+
   const c = await pool.query(`SELECT count(*)::int AS n FROM "Cahier"`);
   console.log("Tables pretes. Cahiers existants :", c.rows[0].n);
+
+  const z = await pool.query(`SELECT count(*)::int AS n FROM "Zone"`);
+  if (z.rows[0].n === 0) {
+    for (let i = 0; i < ZONES.length; i++) {
+      await pool.query(
+        `INSERT INTO "Zone" ("id","nom","ordre") VALUES ($1,$2,$3)`,
+        [randomUUID(), ZONES[i], i]
+      );
+    }
+    console.log("Zones seedees :", ZONES.length);
+  } else {
+    console.log("Zones deja presentes :", z.rows[0].n);
+  }
+
   await pool.end();
 }
 

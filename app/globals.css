@@ -119,3 +119,35 @@ tr.total td { font-weight: 700; background: #fdf3e0; border-top: 2px solid var(-
   table { font-size: 0.78rem; }
   th, td { padding: 6px; white-space: nowrap; }
 }
+
+/* Accueil UMPJ (menu des sections) */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+.section-card {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.05s ease;
+}
+.section-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.section-title { font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.section-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; }
+.section-go { color: var(--accent-dark); font-weight: 600; font-size: 0.85rem; }
+
+/* Fiche mensuelle par zone */
+.month-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.month-nav select { flex: 1; max-width: 260px; }
+.zone-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.zone-list li { display: flex; gap: 8px; align-items: center; }
+.zone-list input { flex: 1; min-width: 0; }
+
