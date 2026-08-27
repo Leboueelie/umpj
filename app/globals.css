@@ -152,4 +152,9 @@ tr.total td { font-weight: 700; background: #fdf3e0; border-top: 2px solid var(-
 .zone-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
 .zone-list li { display: flex; gap: 8px; align-items: center; }
 .zone-list input { flex: 1; min-width: 0; }
+.ncol { width: 44px; text-align: center; color: var(--muted); font-weight: 600; }
+.warn { color: var(--danger); font-size: 0.78rem; font-weight: 600; }
+tr.manquant { background: #fff7ed; }
+tr.manquant input { border-color: #f0b27a; }
+.readonly { display: block; text-align: center; color: var(--muted); padding: 6px 4px; font-size: 0.85rem; }
 

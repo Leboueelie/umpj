@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree } from "@/lib/calc";
+import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
 
 function formatTimeInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 4);
@@ -20,7 +20,7 @@ function moisCourant(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-interface Val { d: string; f: string; p: string; }
+interface Val { d: string; f: string; p: string; t: string; }
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -55,17 +55,22 @@ export default function Zones() {
   async function loadEntrees(zl?: Zone[]) {
     const list = zl && zl.length ? zl : zones;
     const init: Record<string, Val> = {};
-    for (const z of list) init[z.id] = { d: "", f: "", p: "" };
+    for (const z of list) init[z.id] = { d: "", f: "", p: "", t: "" };
     try {
       const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
       for (const r of rows)
-        init[r.zoneId] = { d: r.heureDebut, f: r.heureFin, p: String(r.participants) };
+        init[r.zoneId] = {
+          d: r.heureDebut,
+          f: r.heureFin,
+          p: String(r.participants),
+          t: fmtMinToHeure(r.tempsMis),
+        };
     } catch {}
     setVals(init);
   }
 
   function setVal(zoneId: string, patch: Partial<Val>) {
-    setVals((v) => ({ ...v, [zoneId]: { ...(v[zoneId] || { d: "", f: "", p: "" }), ...patch } }));
+    setVals((v) => ({ ...v, [zoneId]: { ...(v[zoneId] || { d: "", f: "", p: "", t: "" }), ...patch } }));
     setSaved(false);
   }
 
@@ -74,8 +79,9 @@ export default function Zones() {
     for (const z of zones) {
       const v = vals[z.id]; if (!v) continue;
       const tm = tempsMisMin(v.d, v.f);
+      const duree = tm ?? parseDureeMinutes(v.t);
       const p = parseInt(v.p || "0", 10);
-      if (tm !== null && p >= 1) { totP += p; totC += cumulMin(tm, p) || 0; }
+      if (duree !== null && p >= 1) { totP += p; totC += cumulMin(duree, p) || 0; }
     }
     return { totP, totC };
   }, [zones, vals]);
@@ -87,6 +93,7 @@ export default function Zones() {
         zoneId: z.id,
         heureDebut: vals[z.id]?.d || "",
         heureFin: vals[z.id]?.f || "",
+        tempsMis: vals[z.id]?.t || "",
         participants: parseInt(vals[z.id]?.p || "0", 10),
       }));
       await api("/api/zones/entrees", {
@@ -145,10 +152,17 @@ export default function Zones() {
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, 1))} aria-label="Mois suivant">›</button>
         </div>
 
+        <p className="note">
+          Les participants sont déclarés par la zone. Pour le temps de prière, renseignez
+          soit <strong>Début</strong> et <strong>Fin</strong>, soit le <strong>Temps mis</strong> directement
+          (les deux sont facultatifs ; lignes en orange = temps mis à saisir).
+        </p>
+
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
+                <th className="ncol">N°</th>
                 <th>Zone</th>
                 <th>Début</th>
                 <th>Fin</th>
@@ -158,13 +172,18 @@ export default function Zones() {
               </tr>
             </thead>
             <tbody>
-              {zones.map((z) => {
-                const v = vals[z.id] || { d: "", f: "", p: "" };
-                const tm = tempsMisMin(v.d, v.f);
+              {zones.map((z, i) => {
+                const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
+                const tmCalcule = tempsMisMin(v.d, v.f);
+                const direct = parseDureeMinutes(v.t);
+                const duree = tmCalcule ?? direct;
                 const p = parseInt(v.p || "0", 10);
-                const cu = tm !== null && p >= 1 ? cumulMin(tm, p) : null;
+                const aDesParticipants = p >= 1;
+                const tempsManquant = aDesParticipants && duree === null;
+                const cu = duree !== null && aDesParticipants ? cumulMin(duree, p) : null;
                 return (
-                  <tr key={z.id}>
+                  <tr key={z.id} className={tempsManquant ? "manquant" : undefined}>
+                    <td className="ncol">{i + 1}</td>
                     <td>{z.nom}</td>
                     <td>
                       <input type="text" inputMode="numeric" placeholder="08:00" value={v.d}
@@ -178,14 +197,24 @@ export default function Zones() {
                       <input type="number" min="1" value={v.p}
                         onChange={(e) => setVal(z.id, { p: e.target.value })} />
                     </td>
-                    <td>{tm !== null ? fmtDuree(tm) : "—"}</td>
-                    <td>{cu !== null ? fmtDuree(cu) : "—"}</td>
+                    <td className={tempsManquant ? "warn" : undefined}>
+                      {tmCalcule !== null ? (
+                        <span className="readonly">{fmtDuree(tmCalcule)}</span>
+                      ) : (
+                        <input type="text" inputMode="numeric" placeholder="02:00" value={v.t}
+                          onChange={(e) => setVal(z.id, { t: formatTimeInput(e.target.value) })} />
+                      )}
+                    </td>
+                    <td className={tempsManquant ? "warn" : undefined}>
+                      {cu !== null ? fmtDuree(cu) : (tempsManquant ? "à saisir" : "—")}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
               <tr className="total">
+                <td></td>
                 <td>Total national</td>
                 <td></td>
                 <td></td>

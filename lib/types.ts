@@ -22,7 +22,8 @@ export interface EntreeZone {
   id: string;
   zoneId: string;
   mois: string; // YYYY-MM
-  heureDebut: string;
-  heureFin: string;
+  heureDebut: string | null;
+  heureFin: string | null;
+  tempsMis: number | null; // saisie directe (minutes), facultatif
   participants: number;
 }

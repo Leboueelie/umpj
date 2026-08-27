@@ -93,6 +93,21 @@ export function fmtDuree(min: number | null | undefined): string {
   return h + "h" + String(m).padStart(2, "0");
 }
 
+// "HH:MM" (ou "H:MM") -> minutes, ou null si invalide
+export function parseDureeMinutes(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const v = normalizeHeure(s);
+  return v ? toMin(v) : null;
+}
+
+// minutes -> "HH:MM"
+export function fmtMinToHeure(min: number | null | undefined): string {
+  if (min === null || min === undefined) return "";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export function fmtDate(iso: string): string {
   if (!iso) return "";
   const parts = iso.split("-");

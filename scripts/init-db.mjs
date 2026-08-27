@@ -84,9 +84,10 @@ CREATE TABLE IF NOT EXISTS "EntreeZone" (
   "id" TEXT NOT NULL,
   "zoneId" TEXT NOT NULL,
   "mois" TEXT NOT NULL,
-  "heureDebut" TEXT NOT NULL,
-  "heureFin" TEXT NOT NULL,
-  "participants" INTEGER NOT NULL,
+  "heureDebut" TEXT,
+  "heureFin" TEXT,
+  "tempsMis" INTEGER,
+  "participants" INTEGER NOT NULL DEFAULT 0,
   CONSTRAINT "EntreeZone_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "EntreeZone_zone_mois_key" UNIQUE ("zoneId","mois")
 );
@@ -100,6 +101,15 @@ ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
 
 async function main() {
   await pool.query(sql);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      BEGIN ALTER TABLE "EntreeZone" ALTER COLUMN "heureDebut" DROP NOT NULL; EXCEPTION WHEN others THEN END;
+      BEGIN ALTER TABLE "EntreeZone" ALTER COLUMN "heureFin" DROP NOT NULL; EXCEPTION WHEN others THEN END;
+      BEGIN ALTER TABLE "EntreeZone" ADD COLUMN "tempsMis" INTEGER; EXCEPTION WHEN duplicate_column THEN END;
+    END $$;
+  `);
 
   const c = await pool.query(`SELECT count(*)::int AS n FROM "Cahier"`);
   console.log("Tables pretes. Cahiers existants :", c.rows[0].n);

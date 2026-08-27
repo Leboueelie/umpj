@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { tempsMisMin, normalizeHeure } from "@/lib/calc";
+import { tempsMisMin, normalizeHeure, parseDureeMinutes } from "@/lib/calc";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -37,13 +37,14 @@ export async function POST(req: Request) {
       const debut = normalizeHeure((e.heureDebut ?? "").toString());
       const fin = normalizeHeure((e.heureFin ?? "").toString());
       const participants = parseInt(e.participants, 10);
-      if (
-        !debut ||
-        !fin ||
-        !(participants >= 1) ||
-        tempsMisMin(debut, fin) === null
-      ) {
-        // entrée vide/invalide -> on retire une eventuelle ligne existante
+      const tempsMis = parseDureeMinutes((e.tempsMis ?? "").toString()); // saisie directe (minutes)
+      const dureeCalculee = tempsMisMin(debut || "", fin || ""); // depuis Début/Fin
+      const duree = dureeCalculee ?? tempsMis; // Début/Fin prioritaire sur la saisie directe
+      const aParticipants = participants >= 1;
+      const aDuree = duree !== null;
+
+      if (!aParticipants && !aDuree) {
+        // totalement vide -> on retire une éventuelle ligne existante
         const d = await client.query(
           `DELETE FROM "EntreeZone" WHERE "zoneId"=$1 AND "mois"=$2`,
           [zoneId, mois]
@@ -51,22 +52,23 @@ export async function POST(req: Request) {
         supprimees += d.rowCount ?? 0;
         continue;
       }
+
       const ex = await client.query(
         `SELECT 1 FROM "EntreeZone" WHERE "zoneId"=$1 AND "mois"=$2`,
         [zoneId, mois]
       );
       if (ex.rowCount && ex.rowCount > 0) {
         await client.query(
-          `UPDATE "EntreeZone" SET "heureDebut"=$1,"heureFin"=$2,"participants"=$3
-           WHERE "zoneId"=$4 AND "mois"=$5`,
-          [debut, fin, participants, zoneId, mois]
+          `UPDATE "EntreeZone" SET "heureDebut"=$1,"heureFin"=$2,"tempsMis"=$3,"participants"=$4
+           WHERE "zoneId"=$5 AND "mois"=$6`,
+          [debut, fin, tempsMis, participants, zoneId, mois]
         );
         maj++;
       } else {
         await client.query(
-          `INSERT INTO "EntreeZone" ("id","zoneId","mois","heureDebut","heureFin","participants")
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [crypto.randomUUID(), zoneId, mois, debut, fin, participants]
+          `INSERT INTO "EntreeZone" ("id","zoneId","mois","heureDebut","heureFin","tempsMis","participants")
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [crypto.randomUUID(), zoneId, mois, debut, fin, tempsMis, participants]
         );
         creees++;
       }
