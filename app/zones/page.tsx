@@ -43,15 +43,19 @@ export default function Zones() {
   const [newZone, setNewZone] = useState("");
 
   useEffect(() => { loadZones(); /* eslint-disable-next-line */ }, []);
-  useEffect(() => { if (zones.length) loadEntrees(); /* eslint-disable-next-line */ }, [mois, zones]);
+  useEffect(() => { loadEntrees(); /* eslint-disable-next-line */ }, [mois]);
 
   async function loadZones() {
-    try { const z = await api<Zone[]>("/api/zones"); setZones(z); }
-    catch (e) { setError((e as Error).message); }
+    try {
+      const z = await api<Zone[]>("/api/zones");
+      setZones(z);
+      await loadEntrees(z);
+    } catch (e) { setError((e as Error).message); }
   }
-  async function loadEntrees() {
+  async function loadEntrees(zl?: Zone[]) {
+    const list = zl && zl.length ? zl : zones;
     const init: Record<string, Val> = {};
-    for (const z of zones) init[z.id] = { d: "", f: "", p: "" };
+    for (const z of list) init[z.id] = { d: "", f: "", p: "" };
     try {
       const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
       for (const r of rows)
@@ -103,8 +107,10 @@ export default function Zones() {
     } catch (e) { setError((e as Error).message); }
   }
   async function renameZone(z: Zone) {
+    const nom = z.nom.trim();
+    if (!nom) return;
     try {
-      const u = await api<Zone>(`/api/zones/${z.id}`, { method: "PATCH", body: JSON.stringify({ nom: z.nom }) });
+      const u = await api<Zone>(`/api/zones/${z.id}`, { method: "PATCH", body: JSON.stringify({ nom }) });
       setZones((zs) => zs.map((x) => (x.id === u.id ? u : x)));
     } catch (e) { setError((e as Error).message); }
   }
@@ -215,8 +221,8 @@ export default function Zones() {
               {zones.map((z) => (
                 <li key={z.id}>
                   <input type="text" value={z.nom}
-                    onChange={(e) => setZones((zs) => zs.map((x) => (x.id === z.id ? { ...x, nom: e.target.value } : x)))} />
-                  <button className="link-btn" onClick={() => renameZone(z)}>Renommer</button>
+                    onChange={(e) => setZones((zs) => zs.map((x) => (x.id === z.id ? { ...x, nom: e.target.value } : x)))}
+                    onBlur={() => renameZone(z)} />
                   <button className="link-btn danger" onClick={() => deleteZone(z)}>Supprimer</button>
                 </li>
               ))}
