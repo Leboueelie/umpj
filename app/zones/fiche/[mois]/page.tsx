@@ -149,6 +149,29 @@ export default function FicheMoisDetail() {
     catch (e) { setError("Échec export : " + (e as Error).message); }
   }
 
+  async function supprimerZone(zoneId: string) {
+    if (!confirm("Supprimer l'entrée de cette zone pour ce mois ?")) return;
+    try {
+      await api(`/api/zones/entrees?mois=${mois}&zoneId=${zoneId}`, { method: "DELETE" });
+      setVals((v) => ({ ...v, [zoneId]: { p: "", t: "" } }));
+      baselineRef.current = { ...baselineRef.current, [zoneId]: { p: "", t: "" } };
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function supprimerFiche() {
+    if (!confirm(`Supprimer la fiche de ${moisLabel(mois)} (toutes les zones) ?`))
+      return;
+    try {
+      await api(`/api/zones/entrees?mois=${mois}`, { method: "DELETE" });
+      router.push("/zones/fiches");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   function changeMois(part: "m" | "y", value: string) {
     const [y, m] = mois.split("-");
     const ny = part === "y" ? value : y;
@@ -276,6 +299,7 @@ export default function FicheMoisDetail() {
                 <th>Temps mis</th>
                 <th>Participant(s)</th>
                 <th>Cumul</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -299,10 +323,20 @@ export default function FicheMoisDetail() {
                       (parseInt(l.v.p || "0", 10) || "—")
                     )}
                   </td>
-                  <td className={l.manquant ? "warn" : undefined}>
-                    {l.cu !== null ? fmtDuree(l.cu) : (l.manquant ? "à saisir" : "—")}
-                  </td>
-                </tr>
+                   <td className={l.manquant ? "warn" : undefined}>
+                     {l.cu !== null ? fmtDuree(l.cu) : (l.manquant ? "à saisir" : "—")}
+                   </td>
+                   <td>
+                     <button
+                       className="btn secondary"
+                       type="button"
+                       onClick={() => supprimerZone(l.z.id)}
+                       aria-label={`Supprimer ${l.z.nom}`}
+                     >
+                       ✕
+                     </button>
+                   </td>
+                 </tr>
               ))}
             </tbody>
             <tfoot>
@@ -333,6 +367,7 @@ export default function FicheMoisDetail() {
             </button>
           )}
           <button className="btn secondary" type="button" onClick={exportFiche}>Export Excel</button>
+          <button className="btn danger" type="button" onClick={supprimerFiche}>Supprimer la fiche</button>
           {saved && <span className="note">Fiche enregistrée.</span>}
         </div>
         {error && <div className="err">{error}</div>}

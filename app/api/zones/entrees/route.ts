@@ -17,6 +17,27 @@ export async function GET(req: Request) {
   return NextResponse.json(r.rows);
 }
 
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const mois = searchParams.get("mois");
+  const zoneId = searchParams.get("zoneId");
+  if (!mois || !/^\d{4}-\d{2}$/.test(mois))
+    return NextResponse.json({ error: "mois invalide (YYYY-MM)." }, { status: 400 });
+
+  let supprimees = 0;
+  if (zoneId) {
+    const d = await pool.query(
+      `DELETE FROM "EntreeZone" WHERE "zoneId"=$1 AND "mois"=$2`,
+      [zoneId, mois]
+    );
+    supprimees = d.rowCount ?? 0;
+  } else {
+    const d = await pool.query(`DELETE FROM "EntreeZone" WHERE "mois"=$1`, [mois]);
+    supprimees = d.rowCount ?? 0;
+  }
+  return NextResponse.json({ supprimees });
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const mois = (body.mois ?? "").toString().trim();

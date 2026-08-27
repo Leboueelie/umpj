@@ -89,6 +89,8 @@ select {
 .btn:hover { background: var(--navy-dark); }
 .btn.secondary { background: #e5e7eb; color: #1f2933; }
 .btn.secondary:hover { background: #d1d5db; }
+.btn.danger { background: #c0392b; color: #fff; }
+.btn.danger:hover { background: #a93226; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .preview {
   margin-top: 12px; padding: 10px 12px; background: #fdf3e0; border-radius: 6px;

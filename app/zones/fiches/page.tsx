@@ -61,6 +61,17 @@ export default function ListeFiches() {
     } catch {}
   }
 
+  async function supprimerMois(m: string) {
+    if (!confirm(`Supprimer la fiche de ${moisLabel(m)} (toutes les zones) ?`))
+      return;
+    try {
+      await api(`/api/zones/entrees?mois=${m}`, { method: "DELETE" });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   useEffect(() => {
@@ -93,14 +104,23 @@ export default function ListeFiches() {
           <ul className="fiches-list">
             {moisList.map((m) => (
               <li key={m}>
-                <Link href={`/zones/fiche/${m}`} className="fiche-lien">
-                  <span className="mois">{moisLabel(m)}</span>
-                  <span className="tot">
-                    {recap[m]
-                      ? `${recap[m].totP} participants · ${fmtDuree(recap[m].totT)}`
-                      : "—"}
-                  </span>
-                </Link>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Link href={`/zones/fiche/${m}`} className="fiche-lien" style={{ flex: 1 }}>
+                    <span className="mois">{moisLabel(m)}</span>
+                    <span className="tot">
+                      {recap[m]
+                        ? `${recap[m].totP} participants · ${fmtDuree(recap[m].totT)}`
+                        : "—"}
+                    </span>
+                  </Link>
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => supprimerMois(m)}
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
