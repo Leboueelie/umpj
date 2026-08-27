@@ -17,19 +17,24 @@ export default function ListeFiches() {
   const [recap, setRecap] = useState<Record<string, { totP: number; totC: number; totT: number }>>({});
   const [error, setError] = useState("");
 
+  async function load() {
+    try {
+      const ms = await api<string[]>("/api/zones/mois");
+      setMoisList(ms);
+      const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
+      const map: Record<string, { totP: number; totC: number; totT: number }> = {};
+      for (const r of rc) map[r.mois] = { totP: r.totP, totC: r.totC, totT: r.totT || 0 };
+      setRecap(map);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const ms = await api<string[]>("/api/zones/mois");
-        setMoisList(ms);
-        const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
-        const map: Record<string, { totP: number; totC: number; totT: number }> = {};
-        for (const r of rc) map[r.mois] = { totP: r.totP, totC: r.totC, totT: r.totT || 0 };
-        setRecap(map);
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    })();
+    const id = setInterval(() => { load(); }, 20000);
+    return () => clearInterval(id);
   }, []);
 
   return (

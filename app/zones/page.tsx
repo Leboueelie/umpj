@@ -51,6 +51,10 @@ export default function Zones() {
   const [importing, setImporting] = useState(false);
   const [msg, setMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const baselineRef = useRef<Record<string, Val>>({});
+  const moisRef = useRef(mois);
+  moisRef.current = mois;
+  const draftKey = (m: string) => "umpj:fiche:" + m;
 
   useEffect(() => { loadZones(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { loadEntrees(); /* eslint-disable-next-line */ }, [mois]);
@@ -59,6 +63,37 @@ export default function Zones() {
       const m = new URLSearchParams(window.location.search).get("mois");
       if (m && /^\d{4}-\d{2}$/.test(m)) setMois(m);
     } catch {}
+  }, []);
+
+  function sameVal(a: Val, b?: Val) {
+    return !!b && a.p === b.p && a.t === b.t;
+  }
+
+  // Rafraichissement automatique : recharge le serveur sans ecraser la saisie en cours
+  async function pollSilent() {
+    const m = moisRef.current;
+    try {
+      const rows = await api<any[]>(`/api/zones/entrees?mois=${m}`);
+      const server: Record<string, Val> = {};
+      for (const r of rows) server[r.zoneId] = { p: String(r.participants), t: fmtMinToHeure(r.tempsMis) };
+      setVals((prev) => {
+        const next: Record<string, Val> = {};
+        const ids = new Set([...Object.keys(prev), ...Object.keys(server)]);
+        for (const id of ids) {
+          const cur = prev[id] || { p: "", t: "" };
+          const base = baselineRef.current[id];
+          const srv = server[id] || { p: "", t: "" };
+          next[id] = sameVal(cur, base) ? srv : cur; // champ edite = preserve
+        }
+        return next;
+      });
+      baselineRef.current = server;
+    } catch {}
+  }
+
+  useEffect(() => {
+    const id = setInterval(() => { pollSilent(); }, 20000);
+    return () => clearInterval(id);
   }, []);
 
   async function loadZones() {
@@ -80,11 +115,24 @@ export default function Zones() {
           t: fmtMinToHeure(r.tempsMis),
         };
     } catch {}
+    // restaure le brouillon non enregistre (survit a un F5 / changement de mois)
+    try {
+      const raw = localStorage.getItem(draftKey(mois));
+      if (raw) {
+        const draft = JSON.parse(raw) as Record<string, Val>;
+        for (const id of Object.keys(draft)) if (init[id]) init[id] = draft[id];
+      }
+    } catch {}
     setVals(init);
+    baselineRef.current = init;
   }
 
   function setVal(zoneId: string, patch: Partial<Val>) {
-    setVals((v) => ({ ...v, [zoneId]: { ...(v[zoneId] || { p: "", t: "" }), ...patch } }));
+    setVals((v) => {
+      const nv = { ...v, [zoneId]: { ...(v[zoneId] || { p: "", t: "" }), ...patch } };
+      try { localStorage.setItem(draftKey(moisRef.current), JSON.stringify(nv)); } catch {}
+      return nv;
+    });
     setSaved(false);
   }
 
@@ -112,6 +160,8 @@ export default function Zones() {
         method: "POST",
         body: JSON.stringify({ mois, entrees }),
       });
+      try { localStorage.removeItem(draftKey(mois)); } catch {}
+      baselineRef.current = { ...vals };
       setSaved(true);
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
@@ -134,6 +184,7 @@ export default function Zones() {
         r.ignorees ? `${r.ignorees} ignorée(s)` : null,
       ].filter(Boolean);
       setMsg(parts.join(" · "));
+      try { localStorage.removeItem(draftKey(mois)); } catch {}
       await loadEntrees();
     } catch (e) { setError("Échec import : " + (e as Error).message); }
     finally { setImporting(false); }

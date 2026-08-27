@@ -25,26 +25,31 @@ export default function FicheMoisDetail() {
   const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number; totT: number }[]>([]);
   const [error, setError] = useState("");
 
+  async function load() {
+    try {
+      const z = await api<Zone[]>("/api/zones");
+      setZones(z);
+      const init: Record<string, Val> = {};
+      for (const x of z) init[x.id] = { p: "", t: "" };
+      const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
+      for (const r of rows)
+        init[r.zoneId] = {
+          p: String(r.participants),
+          t: fmtMinToHeure(r.tempsMis),
+        };
+      setVals(init);
+      const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
+      setRecap(rc);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [mois]);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const z = await api<Zone[]>("/api/zones");
-        setZones(z);
-        const init: Record<string, Val> = {};
-        for (const x of z) init[x.id] = { p: "", t: "" };
-        const rows = await api<any[]>(`/api/zones/entrees?mois=${mois}`);
-        for (const r of rows)
-          init[r.zoneId] = {
-            p: String(r.participants),
-            t: fmtMinToHeure(r.tempsMis),
-          };
-        setVals(init);
-        const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
-        setRecap(rc);
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    })();
+    const id = setInterval(() => { load(); }, 20000);
+    return () => clearInterval(id);
   }, [mois]);
 
   async function exportFiche() {
