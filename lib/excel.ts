@@ -1,5 +1,5 @@
-import type { Cahier, Ligne } from "@/lib/types";
-import { toMin, tempsMisMin, cumulMin, fmtDate } from "@/lib/calc";
+import type { Cahier, Ligne, Zone } from "@/lib/types";
+import { toMin, tempsMisMin, cumulMin, fmtDate, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
 
 const TIME_FMT = "hh:mm";
 const DUREE_FMT = "[h]\\hmm";
@@ -187,6 +187,163 @@ export async function parseImportFile(file: File): Promise<ImportedCahier[]> {
       lignes.push({ date, heureDebut: debut, heureFin: fin, nombrePersonnes: nb });
     }
     if (lignes.length) out.push({ nom: sheetName, lignes });
+  }
+  return out;
+}
+
+// ---- Fiche zones ----
+
+interface ZoneVal { d: string; f: string; p: string; t: string; }
+interface RecapMois { mois: string; totP: number; totC: number; }
+
+export async function exportFicheZones(
+  mois: string,
+  zones: Zone[],
+  vals: Record<string, ZoneVal>,
+  recap: RecapMois[]
+) {
+  const XLSX = await import("xlsx");
+  const aoa: unknown[][] = [["N°", "Zone", "Début", "Fin", "Participant(s)", "Temps mis", "Cumul"]];
+  let totP = 0;
+  let totC = 0;
+
+  zones.forEach((z, i) => {
+    const v = vals[z.id] || { d: "", f: "", p: "", t: "" };
+    const tm = tempsMisMin(v.d, v.f);
+    const direct = parseDureeMinutes(v.t);
+    const duree = tm ?? direct;
+    const p = parseInt(v.p || "0", 10);
+    const cumul = duree !== null && p >= 1 ? duree * p : null;
+    if (p >= 1) totP += p;
+    if (cumul) totC += cumul;
+
+    const debutCell = v.d
+      ? { t: "n" as const, v: (toMin(v.d) || 0) / 1440, z: TIME_FMT }
+      : "";
+    const finCell = v.f
+      ? { t: "n" as const, v: (toMin(v.f) || 0) / 1440, z: TIME_FMT }
+      : "";
+    const tmCell = duree !== null
+      ? { t: "n" as const, v: duree / 1440, z: DUREE_FMT }
+      : "";
+    const cuCell = cumul !== null
+      ? { t: "n" as const, v: cumul / 1440, z: DUREE_FMT }
+      : "";
+
+    aoa.push([i + 1, z.nom, debutCell, finCell, p >= 1 ? p : "", tmCell, cuCell]);
+  });
+
+  aoa.push([
+    "Total national",
+    "",
+    "",
+    "",
+    `${totP} participants`,
+    "",
+    { t: "n", v: totC / 1440, z: DUREE_FMT },
+  ]);
+
+  const ws: any = XLSX.utils.aoa_to_sheet(aoa as any);
+  ws["!cols"] = [
+    { wch: 5 }, { wch: 26 }, { wch: 9 }, { wch: 9 }, { wch: 15 }, { wch: 11 }, { wch: 11 },
+  ];
+  ws["!autofilter"] = { ref: "A1:G" + (zones.length + 1) };
+
+  const wb = XLSX.utils.book_new();
+  wb.Workbook = (wb.Workbook || {}) as any;
+  (wb.Workbook as any).CalcPr = { fullCalcOnLoad: true };
+  XLSX.utils.book_append_sheet(wb, ws, "Fiche " + mois);
+
+  // Feuille récapitulatif multi-mois
+  const recapAoa: unknown[][] = [["Mois", "Total participants", "Total cumul"]];
+  let gtP = 0;
+  let gtC = 0;
+  for (const r of recap) {
+    gtP += r.totP;
+    gtC += r.totC;
+    recapAoa.push([r.mois, r.totP, { t: "n", v: r.totC / 1440, z: DUREE_FMT }]);
+  }
+  recapAoa.push([
+    "Total général",
+    gtP,
+    { t: "n", v: gtC / 1440, z: DUREE_FMT },
+  ]);
+  const recapWs: any = XLSX.utils.aoa_to_sheet(recapAoa as any);
+  recapWs["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
+  recapWs["!autofilter"] = { ref: "A1:C" + (recap.length + 1) };
+  XLSX.utils.book_append_sheet(wb, recapWs, "Récapitulatif");
+
+  XLSX.writeFile(wb, `fiche-zones-${mois}.xlsx`);
+}
+
+function parseDureeCell(cell: any): string {
+  if (cell == null || cell === "") return "";
+  if (typeof cell === "number") {
+    const m = Math.round(cell * 1440);
+    return fmtMinToHeure(m);
+  }
+  const s = String(cell).trim();
+  const mm = parseDureeMinutes(s);
+  return mm != null ? fmtMinToHeure(mm) : "";
+}
+
+export interface ImportedFicheZone {
+  zone: string;
+  debut: string;
+  fin: string;
+  participants: number;
+  tempsMis: string;
+}
+
+export async function parseImportZonesFile(file: File): Promise<ImportedFicheZone[]> {
+  const XLSX = await import("xlsx");
+  const isCsv = file.name.toLowerCase().endsWith(".csv");
+  const wb = isCsv
+    ? XLSX.read(await file.text(), { type: "string" })
+    : XLSX.read(await file.arrayBuffer(), { type: "array" });
+
+  const out: ImportedFicheZone[] = [];
+  for (const sheetName of wb.SheetNames) {
+    if (sheetName.toLowerCase() === "récapitulatif") continue;
+    const ws = wb.Sheets[sheetName];
+    if (!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true }) as any[][];
+    if (rows.length < 2) continue;
+
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 6); i++) {
+      const r = rows[i].map((c) => String(c).toLowerCase());
+      if (
+        r.includes("zone") &&
+        (r.includes("début") || r.includes("debut") || r.includes("temps mis") || r.includes("temps"))
+      ) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx < 0) continue;
+
+    const header = rows[headerIdx].map((c) => String(c).toLowerCase());
+    const ciZone = header.findIndex((h) => h.includes("zone"));
+    const ciDeb = header.findIndex((h) => h.includes("début") || h.includes("debut"));
+    const ciFin = header.findIndex((h) => h.includes("fin"));
+    const ciTm = header.findIndex((h) => h.includes("temps"));
+    const ciPart = header.findIndex((h) =>
+      /particip|personne|effectif|nombre|membre|nb/.test(h)
+    );
+    if (ciZone < 0) continue;
+
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const zone = String(row[ciZone] ?? "").trim();
+      if (!zone) continue;
+      if (/^total /i.test(zone)) continue; // saute la ligne "Total national"
+      const debut = ciDeb >= 0 ? parseTime(row[ciDeb]) : "";
+      const fin = ciFin >= 0 ? parseTime(row[ciFin]) : "";
+      const tempsMis = ciTm >= 0 ? parseDureeCell(row[ciTm]) : "";
+      const participants = ciPart >= 0 ? parseInt(String(row[ciPart] ?? "0"), 10) || 0 : 0;
+      out.push({ zone, debut, fin, participants, tempsMis });
+    }
   }
   return out;
 }

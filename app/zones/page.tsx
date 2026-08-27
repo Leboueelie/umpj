@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
+import { exportFicheZones, parseImportZonesFile } from "@/lib/excel";
 
 function formatTimeInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 4);
@@ -41,9 +42,18 @@ export default function Zones() {
   const [saved, setSaved] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [newZone, setNewZone] = useState("");
+  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number }[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [msg, setMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { loadZones(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadZones(); loadRecap(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { loadEntrees(); /* eslint-disable-next-line */ }, [mois]);
+
+  async function loadRecap() {
+    try { setRecap(await api<{ mois: string; totP: number; totC: number }[]>("/api/zones/recap")); }
+    catch {}
+  }
 
   async function loadZones() {
     try {
@@ -101,8 +111,37 @@ export default function Zones() {
         body: JSON.stringify({ mois, entrees }),
       });
       setSaved(true);
+      await loadRecap();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
+  }
+
+  async function exportFiche() {
+    try { await exportFicheZones(mois, zones, vals, recap); }
+    catch (e) { setError("Échec export : " + (e as Error).message); }
+  }
+
+  async function handleImport(file: File) {
+    setImporting(true); setError(""); setMsg("");
+    try {
+      const lignes = await parseImportZonesFile(file);
+      if (lignes.length === 0) { setError("Aucune donnée exploitable trouvée dans le fichier."); return; }
+      const r = await api("/api/zones/import", {
+        method: "POST",
+        body: JSON.stringify({ mois, lignes }),
+      });
+      const parts = [
+        `${r.creees} entrée(s) ajoutée(s)`,
+        r.maj ? `${r.maj} mise(s) à jour` : null,
+        r.zonesCrees ? `${r.zonesCrees} zone(s) créée(s)` : null,
+        r.supprimees ? `${r.supprimees} supprimée(s)` : null,
+        r.ignorees ? `${r.ignorees} ignorée(s)` : null,
+      ].filter(Boolean);
+      setMsg(parts.join(" · "));
+      await loadEntrees();
+      await loadRecap();
+    } catch (e) { setError("Échec import : " + (e as Error).message); }
+    finally { setImporting(false); }
   }
 
   async function addZone() {
@@ -230,9 +269,62 @@ export default function Zones() {
           <button className="btn" onClick={save} disabled={saving}>
             {saving ? "Enregistrement…" : "Enregistrer le mois"}
           </button>
+          <button className="btn secondary" type="button" onClick={exportFiche}>
+            Export Excel
+          </button>
+          <button className="btn secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+            {importing ? "Import…" : "Importer (.xlsx/.csv)"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImport(f);
+              e.target.value = "";
+            }}
+          />
           {saved && <span className="note">Fiche enregistrée.</span>}
+          {msg && <span className="note">{msg}</span>}
         </div>
         {error && <div className="err">{error}</div>}
+      </div>
+
+      <div className="card">
+        <h3 style={{ margin: "0 0 8px", color: "var(--navy)" }}>Cumul national multi-mois</h3>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Mois</th>
+                <th>Total participants</th>
+                <th>Total cumul</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recap.map((r) => (
+                <tr key={r.mois}>
+                  <td>{r.mois}</td>
+                  <td>{r.totP}</td>
+                  <td>{fmtDuree(r.totC)}</td>
+                </tr>
+              ))}
+              {recap.length === 0 && (
+                <tr><td colSpan={3} className="empty">Aucune donnée enregistrée.</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="total">
+                <td>Total général</td>
+                <td>{recap.reduce((a, r) => a + r.totP, 0)}</td>
+                <td>{fmtDuree(recap.reduce((a, r) => a + r.totC, 0))}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p className="note">Export Excel ci-dessus inclut cette feuille « Récapitulatif ».</p>
       </div>
 
       <div className="card">
