@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { moisLabel } from "@/lib/mois";
 import { fmtDuree } from "@/lib/calc";
+import { useFeedback } from "@/components/Feedback";
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -29,6 +30,7 @@ export default function ListeFiches() {
     chambresInterieur: 0,
   });
   const [error, setError] = useState("");
+  const { confirm, toast, node } = useFeedback();
 
   async function chargerMoisRecaps() {
     const ms = await api<string[]>("/api/zones/mois");
@@ -62,13 +64,15 @@ export default function ListeFiches() {
   }
 
   async function supprimerMois(m: string) {
-    if (!confirm(`Supprimer la fiche de ${moisLabel(m)} (toutes les zones) ?`))
+    if (!(await confirm(`Supprimer la fiche de ${moisLabel(m)} (toutes les zones) ?`)))
       return;
     try {
       await api(`/api/zones/entrees?mois=${m}`, { method: "DELETE" });
+      toast("Fiche supprimée.", "success");
       await load();
     } catch (e) {
       setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   }
 
@@ -199,6 +203,7 @@ export default function ListeFiches() {
           </table>
         </div>
       </div>
+      {node}
     </main>
   );
 }

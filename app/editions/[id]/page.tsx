@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { Edition } from "@/lib/types";
+import { useFeedback } from "@/components/Feedback";
 
 function fmtHMN(min: number): string {
   const m = Math.max(0, Math.round(min));
@@ -17,6 +18,7 @@ export default function EditionDetail() {
   const [e, setE] = useState<Edition | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { confirm, toast, node } = useFeedback();
 
   async function load() {
     try {
@@ -31,14 +33,16 @@ export default function EditionDetail() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   async function supprimer() {
-    if (!confirm("Supprimer cette édition ?")) return;
+    if (!(await confirm("Supprimer cette édition ?"))) return;
     setBusy(true);
     try {
       const r = await fetch(`/api/editions/${id}`, { method: "DELETE" });
       if (!r.ok) throw new Error("Échec suppression.");
+      toast("Édition supprimée.", "success");
       router.push("/editions");
     } catch (err) {
       setError((err as Error).message);
+      toast((err as Error).message, "error");
       setBusy(false);
     }
   }
@@ -128,6 +132,7 @@ export default function EditionDetail() {
         <button className="btn danger" type="button" onClick={supprimer} disabled={busy}>Supprimer</button>
         {error && <span className="err">{error}</span>}
       </div>
+      {node}
     </main>
   );
 }

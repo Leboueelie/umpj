@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { parseImportZonesFile } from "@/lib/excel";
+import { useFeedback } from "@/components/Feedback";
 
 function shiftMois(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
@@ -48,6 +49,7 @@ export default function Zones() {
   const [saved, setSaved] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [newZone, setNewZone] = useState("");
+  const { confirm, toast, node } = useFeedback();
   const [importing, setImporting] = useState(false);
   const [msg, setMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -207,11 +209,12 @@ export default function Zones() {
     } catch (e) { setError((e as Error).message); }
   }
   async function deleteZone(z: Zone) {
-    if (!confirm(`Supprimer la zone « ${z.nom} » et ses entrées ?`)) return;
+    if (!(await confirm(`Supprimer la zone « ${z.nom} » et ses entrées ?`))) return;
     try {
       await api(`/api/zones/${z.id}`, { method: "DELETE" });
+      toast("Zone supprimée.", "success");
       setZones((zs) => zs.filter((x) => x.id !== z.id));
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError((e as Error).message); toast((e as Error).message, "error"); }
   }
 
   return (
@@ -353,6 +356,7 @@ export default function Zones() {
           </div>
         )}
       </div>
+      {node}
     </main>
   );
 }

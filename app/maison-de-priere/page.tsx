@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
+import { useFeedback } from "@/components/Feedback";
 
 function formatDateInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 8);
@@ -58,6 +59,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { confirm, toast, node } = useFeedback();
 
   async function load() {
     try {
@@ -142,16 +144,18 @@ export default function App() {
 
   async function deleteCahier(id: string) {
     if (cahiers.length <= 1) {
-      alert("Impossible de supprimer le dernier cahier.");
+      toast("Impossible de supprimer le dernier cahier.", "error");
       return;
     }
     const c = cahiers.find((x) => x.id === id);
-    if (!confirm('Supprimer le cahier "' + c?.nom + '" et toutes ses lignes ?')) return;
+    if (!(await confirm('Supprimer le cahier "' + c?.nom + '" et toutes ses lignes ?'))) return;
     try {
       await api("/api/cahiers/" + id, { method: "DELETE" });
+      toast("Cahier supprimé.", "success");
       await load();
     } catch (e) {
       setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   }
 
@@ -214,16 +218,18 @@ export default function App() {
   }
 
   async function deleteLigne(id: string) {
-    if (!confirm("Supprimer cette ligne ?")) return;
+    if (!(await confirm("Supprimer cette ligne ?"))) return;
     try {
       await api("/api/lignes/" + id, { method: "DELETE" });
       if (editingId === id) {
         setEditingId(null);
         setForm({ ...form, debut: "08:00", fin: "20:00", personnes: "1" });
       }
+      toast("Ligne supprimée.", "success");
       await load();
     } catch (e) {
       setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   }
 
@@ -525,6 +531,7 @@ export default function App() {
           </div>
         )}
       </div>
+      {node}
     </div>
   );
 }

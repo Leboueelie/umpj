@@ -7,6 +7,7 @@ import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { MOIS_FR, moisLabel } from "@/lib/mois";
 import { exportFicheZones } from "@/lib/excel";
+import { useFeedback } from "@/components/Feedback";
 
 interface Val { p: string; t: string; }
 
@@ -47,6 +48,7 @@ export default function FicheMoisDetail() {
   const [moveM, setMoveM] = useState(mois.slice(5, 7));
   const [moving, setMoving] = useState(false);
   const baselineRef = useRef<Record<string, Val>>({});
+  const { confirm, toast, node } = useFeedback();
 
   function sameVal(a: Val, b?: Val) {
     return !!b && a.p === b.p && a.t === b.t;
@@ -150,25 +152,29 @@ export default function FicheMoisDetail() {
   }
 
   async function supprimerZone(zoneId: string) {
-    if (!confirm("Supprimer l'entrée de cette zone pour ce mois ?")) return;
+    if (!(await confirm("Supprimer l'entrée de cette zone pour ce mois ?"))) return;
     try {
       await api(`/api/zones/entrees?mois=${mois}&zoneId=${zoneId}`, { method: "DELETE" });
+      toast("Entrée supprimée.", "success");
       setVals((v) => ({ ...v, [zoneId]: { p: "", t: "" } }));
       baselineRef.current = { ...baselineRef.current, [zoneId]: { p: "", t: "" } };
       await load();
     } catch (e) {
       setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   }
 
   async function supprimerFiche() {
-    if (!confirm(`Supprimer la fiche de ${moisLabel(mois)} (toutes les zones) ?`))
+    if (!(await confirm(`Supprimer la fiche de ${moisLabel(mois)} (toutes les zones) ?`)))
       return;
     try {
       await api(`/api/zones/entrees?mois=${mois}`, { method: "DELETE" });
+      toast("Fiche supprimée.", "success");
       router.push("/zones/fiches");
     } catch (e) {
       setError((e as Error).message);
+      toast((e as Error).message, "error");
     }
   }
 
@@ -372,6 +378,7 @@ export default function FicheMoisDetail() {
         </div>
         {error && <div className="err">{error}</div>}
       </div>
+      {node}
     </main>
   );
 }
