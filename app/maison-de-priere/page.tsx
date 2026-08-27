@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
@@ -285,6 +286,7 @@ export default function App() {
 
   return (
     <div className="wrap">
+      <Link href="/" className="back-link">← Accueil</Link>
       <header className="app-header">
         <img src="/logo.png" alt="Logo" className="logo" />
         <div className="titles">

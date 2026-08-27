@@ -57,6 +57,8 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; color: var(--navy); text-align: center;
   font-size: 0.78rem; padding: 0; text-decoration: underline;
 }
 .link-btn.danger { color: var(--danger); }
+.back-link { display: inline-block; color: var(--navy); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+.back-link:hover { color: var(--accent-dark); }
 .cahier-add {
   border: 1px dashed var(--border); background: #fff; border-radius: 8px;
   padding: 8px 12px; cursor: pointer; color: var(--navy); font-size: 0.9rem;

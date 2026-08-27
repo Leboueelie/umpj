@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree } from "@/lib/calc";
 
@@ -136,6 +137,7 @@ export default function Zones() {
 
   return (
     <main className="wrap">
+      <Link href="/" className="back-link">← Accueil</Link>
       <header className="app-header">
         <img src="/logo.png" alt="Logo UMPJ" className="logo" />
         <div className="titles">
