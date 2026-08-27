@@ -62,10 +62,13 @@ export default function EditionsList() {
 
       <div className="form-actions" style={{ marginBottom: 14 }}>
         <Link href="/editions/nouvelle/edit" className="btn">+ Nouvelle édition</Link>
-        <button type="button" className="btn secondary" onClick={() => fileRef.current?.click()} disabled={importing}>
-          {importing ? "Import…" : "Importer (Excel)"}
+        <button type="button" className="btn secondary" onClick={() => fileRef.current?.click()} disabled={importing} title="Importer un fichier Excel (.xlsx/.xls/.csv) ou un rapport PDF de l'UMPJ">
+          {importing ? "Import…" : "Importer (Excel / PDF)"}
         </button>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" style={{ display: "none" }} onChange={onImport} />
+        <span style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+          Formats acceptés : Excel (.xlsx, .xls, .csv) ou PDF (rapport UMPJ)
+        </span>
       </div>
 
       {error && <div className="err">{error}</div>}
