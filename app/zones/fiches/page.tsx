@@ -5,37 +5,75 @@ import Link from "next/link";
 import { moisLabel } from "@/lib/mois";
 import { fmtDuree } from "@/lib/calc";
 
-async function api<T = any>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
+async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Erreur serveur");
   return data as T;
 }
 
+const GROUPES = [
+  { key: "abidjan" as const, label: "Chambre de prière d'Abidjan" },
+  { key: "interieur" as const, label: "Chambres de prière intérieur" },
+];
+
 export default function ListeFiches() {
   const [moisList, setMoisList] = useState<string[]>([]);
   const [recap, setRecap] = useState<Record<string, { totP: number; totC: number; totT: number }>>({});
+  const [groupes, setGroupes] = useState<Record<string, { totP: number; totT: number }>>({});
+  const [config, setConfig] = useState<{ chambresAbidjan: number; chambresInterieur: number }>({
+    chambresAbidjan: 0,
+    chambresInterieur: 0,
+  });
   const [error, setError] = useState("");
+
+  async function chargerMoisRecaps() {
+    const ms = await api<string[]>("/api/zones/mois");
+    setMoisList(ms);
+    const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
+    const map: Record<string, { totP: number; totC: number; totT: number }> = {};
+    for (const r of rc) map[r.mois] = { totP: r.totP, totC: r.totC, totT: r.totT || 0 };
+    setRecap(map);
+  }
+  async function chargerGroupes() {
+    const g = await api<Record<string, { totP: number; totT: number }>>("/api/zones/groupes");
+    setGroupes(g);
+  }
+  async function chargerConfig() {
+    const c = await api<{ chambresAbidjan: number; chambresInterieur: number }>("/api/zones/config");
+    setConfig(c);
+  }
 
   async function load() {
     try {
-      const ms = await api<string[]>("/api/zones/mois");
-      setMoisList(ms);
-      const rc = await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap");
-      const map: Record<string, { totP: number; totC: number; totT: number }> = {};
-      for (const r of rc) map[r.mois] = { totP: r.totP, totC: r.totC, totT: r.totT || 0 };
-      setRecap(map);
+      await Promise.all([chargerMoisRecaps(), chargerGroupes(), chargerConfig()]);
     } catch (e) {
       setError((e as Error).message);
     }
   }
 
+  async function poll() {
+    try {
+      await Promise.all([chargerMoisRecaps(), chargerGroupes()]);
+    } catch {}
+  }
+
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   useEffect(() => {
-    const id = setInterval(() => { load(); }, 20000);
+    const id = setInterval(() => { poll(); }, 20000);
     return () => clearInterval(id);
   }, []);
+
+  function onChangeChambres(key: "abidjan" | "interieur", val: string) {
+    const n = parseInt(val || "0", 10) || 0;
+    const patch = key === "abidjan" ? { chambresAbidjan: n } : { chambresInterieur: n };
+    setConfig((c) => ({ ...c, ...patch }));
+    api("/api/zones/config", { method: "PUT", body: JSON.stringify(patch) }).catch(() => {});
+  }
 
   return (
     <main className="wrap">
@@ -70,6 +108,35 @@ export default function ListeFiches() {
         {error && <div className="err">{error}</div>}
         <div style={{ marginTop: 12 }}>
           <Link href="/zones" className="link-btn">Ouvrir la fiche du mois courant →</Link>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 style={{ margin: "0 0 12px", color: "var(--navy)" }}>Groupes de prière</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {GROUPES.map((g) => {
+            const grp = groupes[g.key] || { totP: 0, totT: 0 };
+            const chambres = g.key === "abidjan" ? config.chambresAbidjan : config.chambresInterieur;
+            return (
+              <div key={g.key} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>{g.label}</div>
+                <div style={{ marginBottom: 4 }}>Total participants : <b>{grp.totP}</b></div>
+                <div style={{ marginBottom: 10 }}>
+                  Prière investie (temps mis) : <b>{fmtDuree(grp.totT)}</b>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.9rem" }}>
+                  Chambres :
+                  <input
+                    type="number"
+                    min="0"
+                    value={chambres}
+                    onChange={(e) => onChangeChambres(g.key, e.target.value)}
+                    style={{ width: 90, padding: "4px 6px" }}
+                  />
+                </label>
+              </div>
+            );
+          })}
         </div>
       </div>
 

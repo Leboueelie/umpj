@@ -16,6 +16,7 @@ export interface Zone {
   id: string;
   nom: string;
   ordre: number;
+  groupe: string; // "abidjan" | "interieur"
 }
 
 export interface EntreeZone {
