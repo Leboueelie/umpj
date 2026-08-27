@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
-import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
+import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { exportFicheZones, parseImportZonesFile } from "@/lib/excel";
 
 function formatTimeInput(raw: string): string {
@@ -262,7 +262,7 @@ export default function Zones() {
                         <span className="readonly">{fmtDuree(tmCalcule)}</span>
                       ) : (
                         <input type="text" inputMode="numeric" placeholder="02:00" value={v.t}
-                          onChange={(e) => setVal(z.id, { t: formatTimeInput(e.target.value) })} />
+                          onChange={(e) => setVal(z.id, { t: formatDureeInput(e.target.value) })} />
                       )}
                     </td>
                     <td className={tempsManquant ? "warn" : undefined}>

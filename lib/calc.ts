@@ -93,11 +93,34 @@ export function fmtDuree(min: number | null | undefined): string {
   return h + "h" + String(m).padStart(2, "0");
 }
 
-// "HH:MM" (ou "H:MM") -> minutes, ou null si invalide
+// "HH:MM" (heures quelconques >= 0, ex. 2078:57) -> minutes, ou null si invalide
 export function parseDureeMinutes(s: string | null | undefined): number | null {
   if (!s) return null;
-  const v = normalizeHeure(s);
-  return v ? toMin(v) : null;
+  const raw = s.trim().toLowerCase().replace(/\s+/g, "");
+  if (!raw) return null;
+  let m = raw.match(/^(\d+):(\d{1,2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const mn = parseInt(m[2], 10);
+    if (mn > 59) return null;
+    return h * 60 + mn;
+  }
+  m = raw.match(/^(\d+)h(\d{1,2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const mn = parseInt(m[2], 10);
+    if (mn > 59) return null;
+    return h * 60 + mn;
+  }
+  if (/^\d+$/.test(raw)) return parseInt(raw, 10); // nombre brut = minutes
+  return null;
+}
+
+// Formate une saisie de duree (chiffres) en "HH:MM" sans plafond a 4 chiffres
+export function formatDureeInput(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  if (d.length <= 2) return d;
+  return d.slice(0, d.length - 2) + ":" + d.slice(d.length - 2);
 }
 
 // minutes -> "HH:MM"
