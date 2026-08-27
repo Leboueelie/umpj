@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
-import { moisLabel } from "@/lib/mois";
 import { parseImportZonesFile } from "@/lib/excel";
 
 function formatTimeInput(raw: string): string {
@@ -54,12 +53,11 @@ export default function Zones() {
   const [saved, setSaved] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [newZone, setNewZone] = useState("");
-  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number; totT: number }[]>([]);
   const [importing, setImporting] = useState(false);
   const [msg, setMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { loadZones(); loadRecap(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadZones(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { loadEntrees(); /* eslint-disable-next-line */ }, [mois]);
   useEffect(() => {
     try {
@@ -67,11 +65,6 @@ export default function Zones() {
       if (m && /^\d{4}-\d{2}$/.test(m)) setMois(m);
     } catch {}
   }, []);
-
-  async function loadRecap() {
-    try { setRecap(await api<{ mois: string; totP: number; totC: number; totT: number }[]>("/api/zones/recap")); }
-    catch {}
-  }
 
   async function loadZones() {
     try {
@@ -130,7 +123,6 @@ export default function Zones() {
         body: JSON.stringify({ mois, entrees }),
       });
       setSaved(true);
-      await loadRecap();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
   }
@@ -153,7 +145,6 @@ export default function Zones() {
       ].filter(Boolean);
       setMsg(parts.join(" · "));
       await loadEntrees();
-      await loadRecap();
     } catch (e) { setError("Échec import : " + (e as Error).message); }
     finally { setImporting(false); }
   }
@@ -313,44 +304,6 @@ export default function Zones() {
           {msg && <span className="note">{msg}</span>}
         </div>
         {error && <div className="err">{error}</div>}
-      </div>
-
-      <div className="card">
-        <h3 style={{ margin: "0 0 8px", color: "var(--navy)" }}>Cumul national multi-mois</h3>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Mois</th>
-                <th>Total participants</th>
-                <th>Total temps mis</th>
-                <th>Total cumul</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recap.map((r) => (
-                <tr key={r.mois}>
-                  <td>{moisLabel(r.mois)}</td>
-                  <td>{r.totP}</td>
-                  <td>{fmtDuree(r.totT || 0)}</td>
-                  <td style={{ color: "var(--muted)" }}>{fmtDuree(r.totC)}</td>
-                </tr>
-              ))}
-              {recap.length === 0 && (
-                <tr><td colSpan={4} className="empty">Aucune donnée enregistrée.</td></tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr className="total">
-                <td>Total général</td>
-                <td>{recap.reduce((a, r) => a + r.totP, 0)}</td>
-                <td>{fmtDuree(recap.reduce((a, r) => a + (r.totT || 0), 0))}</td>
-                <td style={{ color: "var(--muted)" }}>{fmtDuree(recap.reduce((a, r) => a + r.totC, 0))}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <p className="note">Export Excel ci-dessus inclut cette feuille « Récapitulatif ».</p>
       </div>
 
       <div className="card">
