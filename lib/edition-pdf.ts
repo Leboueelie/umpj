@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import PDFDocument from "pdfkit";
 import type { Edition } from "@/lib/types";
 
@@ -45,6 +47,19 @@ export function buildEditionPdfBuffer(e: Edition): Promise<Buffer> {
     const pageW = doc.page.width;
     const pageH = doc.page.height;
     let y = margin;
+
+    // Filigrane : logo UMPJ en fond (faible opacite), centré sur chaque page
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    const drawWatermark = () => {
+      if (!fs.existsSync(logoPath)) return;
+      const w = pageW * 0.5;
+      const h = w * (373 / 378);
+      doc.opacity(0.1);
+      doc.image(logoPath, (pageW - w) / 2, (pageH - h) / 2, { width: w });
+      doc.opacity(1);
+    };
+    drawWatermark();
+    doc.on("pageAdded", drawWatermark);
 
     const ensure = (h: number) => {
       if (y + h > pageH - margin) {
