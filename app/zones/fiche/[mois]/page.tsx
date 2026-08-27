@@ -42,6 +42,10 @@ export default function FicheMoisDetail() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showMove, setShowMove] = useState(false);
+  const [moveY, setMoveY] = useState(mois.slice(0, 4));
+  const [moveM, setMoveM] = useState(mois.slice(5, 7));
+  const [moving, setMoving] = useState(false);
   const baselineRef = useRef<Record<string, Val>>({});
 
   function sameVal(a: Val, b?: Val) {
@@ -152,6 +156,42 @@ export default function FicheMoisDetail() {
     router.replace(`/zones/fiche/${ny}-${nm}`);
   }
 
+  function openMove() {
+    setMoveY(mois.slice(0, 4));
+    setMoveM(mois.slice(5, 7));
+    setShowMove(true);
+  }
+
+  async function doMove() {
+    const toMois = `${moveY}-${moveM}`;
+    if (toMois === mois) { setShowMove(false); return; }
+    setMoving(true); setError("");
+    try {
+      if (editing && !saved) {
+        // enregistrer d'abord les modifications en cours
+        const entrees = zones.map((z) => ({
+          zoneId: z.id,
+          tempsMis: vals[z.id]?.t || "",
+          participants: parseInt(vals[z.id]?.p || "0", 10),
+        }));
+        await api("/api/zones/entrees", { method: "POST", body: JSON.stringify({ mois, entrees }) });
+        baselineRef.current = { ...vals };
+        setSaved(true);
+        setMode("lecture");
+      }
+      await api("/api/zones/entrees/move", {
+        method: "POST",
+        body: JSON.stringify({ fromMois: mois, toMois }),
+      });
+      setShowMove(false);
+      router.replace(`/zones/fiche/${toMois}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMoving(false);
+    }
+  }
+
   let totP = 0;
   let totC = 0;
   let totT = 0;
@@ -202,7 +242,30 @@ export default function FicheMoisDetail() {
             ))}
           </select>
           <Link href={`/zones?mois=${mois}`} className="link-btn">Import / gestion →</Link>
+          <button type="button" className="link-btn" onClick={openMove}>Changer la période</button>
         </div>
+
+        {showMove && (
+          <div className="move-box">
+            <span>Déplacer cette fiche vers :</span>
+            <select value={Number(moveM)} onChange={(e) => setMoveM(String(e.target.value).padStart(2, "0"))} aria-label="Mois cible">
+              {MOIS_FR.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+            <select value={moveY} onChange={(e) => setMoveY(e.target.value)} aria-label="Année cible">
+              {anneesDispo().map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <button className="btn" type="button" onClick={doMove} disabled={moving}>
+              {moving ? "Déplacement…" : "Déplacer"}
+            </button>
+            <button className="btn secondary" type="button" onClick={() => setShowMove(false)} disabled={moving}>
+              Annuler
+            </button>
+          </div>
+        )}
 
         <div className="table-scroll">
           <table>
