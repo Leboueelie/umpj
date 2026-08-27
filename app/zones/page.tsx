@@ -191,12 +191,6 @@ export default function Zones() {
           <button className="step-btn" onClick={() => setMois(shiftMois(mois, 1))} aria-label="Mois suivant">›</button>
         </div>
 
-        <p className="note">
-          Les participants sont déclarés par la zone. Pour le temps de prière, renseignez
-          soit <strong>Début</strong> et <strong>Fin</strong>, soit le <strong>Temps mis</strong> directement
-          (les deux sont facultatifs ; lignes en orange = temps mis à saisir).
-        </p>
-
         <div className="table-scroll">
           <table>
             <thead>
