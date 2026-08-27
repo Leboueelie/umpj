@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
 import { moisLabel } from "@/lib/mois";
+import { exportFicheZones } from "@/lib/excel";
 
 interface Val { d: string; f: string; p: string; t: string; }
 
@@ -21,6 +22,7 @@ export default function FicheMoisDetail() {
   const mois = String(params.mois || "");
   const [zones, setZones] = useState<Zone[]>([]);
   const [vals, setVals] = useState<Record<string, Val>>({});
+  const [recap, setRecap] = useState<{ mois: string; totP: number; totC: number }[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -39,11 +41,18 @@ export default function FicheMoisDetail() {
             t: fmtMinToHeure(r.tempsMis),
           };
         setVals(init);
+        const rc = await api<{ mois: string; totP: number; totC: number }[]>("/api/zones/recap");
+        setRecap(rc);
       } catch (e) {
         setError((e as Error).message);
       }
     })();
   }, [mois]);
+
+  async function exportFiche() {
+    try { await exportFicheZones(mois, zones, vals, recap); }
+    catch (e) { setError("Échec export : " + (e as Error).message); }
+  }
 
   let totP = 0;
   let totC = 0;
@@ -115,6 +124,9 @@ export default function FicheMoisDetail() {
               </tr>
             </tfoot>
           </table>
+        </div>
+        <div className="form-actions" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn secondary" type="button" onClick={exportFiche}>Export Excel</button>
         </div>
         {error && <div className="err">{error}</div>}
         <p className="note">

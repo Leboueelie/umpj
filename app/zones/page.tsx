@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import type { Zone } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
-import { exportFicheZones, parseImportZonesFile } from "@/lib/excel";
+import { parseImportZonesFile } from "@/lib/excel";
 
 function formatTimeInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 4);
@@ -131,11 +131,6 @@ export default function Zones() {
       await loadRecap();
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
-  }
-
-  async function exportFiche() {
-    try { await exportFicheZones(mois, zones, vals, recap); }
-    catch (e) { setError("Échec export : " + (e as Error).message); }
   }
 
   async function handleImport(file: File) {
@@ -297,9 +292,6 @@ export default function Zones() {
         <div className="form-actions" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn" onClick={save} disabled={saving}>
             {saving ? "Enregistrement…" : "Enregistrer le mois"}
-          </button>
-          <button className="btn secondary" type="button" onClick={exportFiche}>
-            Export Excel
           </button>
           <button className="btn secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={importing}>
             {importing ? "Import…" : "Importer (.xlsx/.csv)"}
