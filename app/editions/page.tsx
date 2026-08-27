@@ -65,7 +65,7 @@ export default function EditionsList() {
         <button type="button" className="btn secondary" onClick={() => fileRef.current?.click()} disabled={importing}>
           {importing ? "Import…" : "Importer (Excel)"}
         </button>
-        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={onImport} />
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" style={{ display: "none" }} onChange={onImport} />
       </div>
 
       {error && <div className="err">{error}</div>}

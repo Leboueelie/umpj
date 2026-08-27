@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { parseEditionFile } from "@/lib/excel";
+import { parseEditionPdfBuffer } from "@/lib/edition-import-pdf";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Fichier requis (champ 'file')." }, { status: 400 });
   }
   try {
-    const ed = await parseEditionFile(file as unknown as File);
+    const name = file.name.toLowerCase();
+    let ed;
+    if (name.endsWith(".pdf")) {
+      const buf = Buffer.from(await file.arrayBuffer());
+      ed = await parseEditionPdfBuffer(buf);
+    } else {
+      ed = await parseEditionFile(file as unknown as File);
+    }
     if (!ed.numero || !ed.dateDebut || !ed.dateFin)
       return NextResponse.json({ error: "Le fichier doit contenir numero, dateDebut et dateFin." }, { status: 400 });
     const heuresInvesties = ed.sessions.reduce((a, s) => a + (s.dureeMinutes || 0), 0);
