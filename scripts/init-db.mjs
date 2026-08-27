@@ -104,6 +104,31 @@ CREATE INDEX IF NOT EXISTS "EntreeZone_mois_idx" ON "EntreeZone"("mois");
 ALTER TABLE "EntreeZone" DROP CONSTRAINT IF EXISTS "EntreeZone_zoneId_fkey";
 ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
   FOREIGN KEY ("zoneId") REFERENCES "Zone"("id") ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS "Edition" (
+  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "numero" INTEGER NOT NULL,
+  "reference" TEXT NOT NULL DEFAULT '',
+  "dateDebut" DATE NOT NULL,
+  "dateFin" DATE NOT NULL,
+  "libellePeriode" TEXT NOT NULL DEFAULT '',
+  "delegationsPresentes" INTEGER NOT NULL DEFAULT 0,
+  "regionsSpirituelles" INTEGER NOT NULL DEFAULT 0,
+  "missionnaires1" INTEGER NOT NULL DEFAULT 0,
+  "missionnaires2" INTEGER NOT NULL DEFAULT 0,
+  "anciensAbidjan" INTEGER NOT NULL DEFAULT 0,
+  "epousesAnciensAbidjan" INTEGER NOT NULL DEFAULT 0,
+  "moyenneParticipation" INTEGER NOT NULL DEFAULT 0,
+  "heuresInvesties" INTEGER NOT NULL DEFAULT 0,
+  "delegationsExterieures" JSONB NOT NULL DEFAULT '[]',
+  "abidjanZones" JSONB NOT NULL DEFAULT '[]',
+  "interieurLocalites" JSONB NOT NULL DEFAULT '[]',
+  "participantsParJour" JSONB NOT NULL DEFAULT '[]',
+  "sessions" JSONB NOT NULL DEFAULT '[]',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Edition_pkey" PRIMARY KEY ("id")
+);
 `;
 
 async function main() {

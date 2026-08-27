@@ -21,6 +21,11 @@ const sections = [
     title: "Liste des fiches mensuelles",
     desc: "Toutes les fiches enregistrées par mois, cliquables (vue complète).",
   },
+  {
+    href: "/editions",
+    title: "EDITIONS DE L'UMPJ",
+    desc: "Rapports par édition (modèle : 31e édition, Février 2026).",
+  },
 ];
 
 export default function Home() {

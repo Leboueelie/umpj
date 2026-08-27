@@ -338,3 +338,130 @@ export async function parseImportZonesFile(file: File): Promise<ImportedFicheZon
   }
   return out;
 }
+
+// ---- Import d'une edition UMPJ ----
+
+export interface ImportedEdition {
+  numero: number;
+  reference: string;
+  dateDebut: string;
+  dateFin: string;
+  libellePeriode: string;
+  delegationsPresentes: number;
+  regionsSpirituelles: number;
+  missionnaires1: number;
+  missionnaires2: number;
+  anciensAbidjan: number;
+  epousesAnciensAbidjan: number;
+  moyenneParticipation: number;
+  delegationsExterieures: string[];
+  abidjanZones: string[];
+  interieurLocalites: string[];
+  participantsParJour: { jour: string; date: string; participants: number }[];
+  sessions: { date: string; nbSessions: number; periodes: string; dureeMinutes: number; participants: number }[];
+}
+
+function sheetColA(ws: any, XLSX: any): string[] {
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false }) as any[][];
+  return rows.map((r) => String(r[0] ?? "").trim()).filter(Boolean);
+}
+
+function numOr(v: any, d = 0): number {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : d;
+}
+
+export async function parseEditionFile(file: File): Promise<ImportedEdition> {
+  const XLSX = await import("xlsx");
+  const isCsv = file.name.toLowerCase().endsWith(".csv");
+  const wb = isCsv
+    ? XLSX.read(await file.text(), { type: "string" })
+    : XLSX.read(await file.arrayBuffer(), { type: "array" });
+
+  const get = (name: string) => wb.Sheets[name];
+
+  // Feuille "Edition" : colonne A = champ, colonne B = valeur
+  const ed = get("Edition");
+  const map: Record<string, any> = {};
+  if (ed) {
+    const rows = XLSX.utils.sheet_to_json(ed, { header: 1, defval: "", raw: false }) as any[][];
+    for (const r of rows) {
+      const k = String(r[0] ?? "").trim().toLowerCase();
+      if (k) map[k] = r[1];
+    }
+  }
+  const g = (keys: string[], d: any = "") => {
+    for (const k of keys) {
+      const v = map[k.toLowerCase()];
+      if (v !== undefined && String(v).trim() !== "") return v;
+    }
+    return d;
+  };
+
+  const dateFromCell = (c: any): string => {
+    if (c == null || c === "") return "";
+    if (typeof c === "number" && c > 1) {
+      const dt = new Date((c - 25569) * 86400000);
+      const p = (n: number) => String(n).padStart(2, "0");
+      return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
+    }
+    return String(c).trim();
+  };
+
+  // Feuilles tableau "Participants" et "Sessions" (avec en-tete)
+  function parseTable(name: string, wanted: string[]) {
+    const ws = get(name);
+    if (!ws) return [] as any[];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false }) as any[][];
+    let hi = -1;
+    for (let i = 0; i < Math.min(rows.length, 4); i++) {
+      const r = rows[i].map((c) => String(c).toLowerCase());
+      if (wanted.every((w) => r.some((h) => h.includes(w)))) { hi = i; break; }
+    }
+    if (hi < 0) return [];
+    const header = rows[hi].map((c) => String(c).toLowerCase());
+    const idx = wanted.map((w) => header.findIndex((h) => h.includes(w)));
+    const out: any[] = [];
+    for (let i = hi + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every((c) => String(c ?? "").trim() === "")) continue;
+      out.push(idx.map((j) => (j >= 0 ? row[j] : "")));
+    }
+    return out;
+  }
+
+  const participantsParJour = parseTable("Participants", ["jour", "date", "particip"]).map((r) => ({
+    jour: String(r[0] ?? "").trim(),
+    date: String(r[1] ?? "").trim(),
+    participants: numOr(r[2]),
+  }));
+
+  const sessions = parseTable("Sessions", ["date", "session", "periode", "duree", "particip"]).map((r) => ({
+    date: String(r[0] ?? "").trim(),
+    nbSessions: numOr(r[1]),
+    periodes: String(r[2] ?? "").trim(),
+    dureeMinutes: numOr(r[3]),
+    participants: numOr(r[4]),
+  }));
+
+  return {
+    numero: numOr(g(["numero", "edition"])),
+    reference: String(g(["reference"]) ?? "").trim(),
+    dateDebut: dateFromCell(g(["datedebut", "date debut"])),
+    dateFin: dateFromCell(g(["datefin", "date fin"])),
+    libellePeriode: String(g(["libelleperiode", "libelle periode", "periode"]) ?? "").trim(),
+    delegationsPresentes: numOr(g(["delegationspresentes", "delegations presentes"])),
+    regionsSpirituelles: numOr(g(["regionsspirituelles", "regions spirituelles"])),
+    missionnaires1: numOr(g(["missionnaires1", "missionnaires n°1", "missionnaires no1"])),
+    missionnaires2: numOr(g(["missionnaires2", "missionnaires n°2", "missionnaires no2"])),
+    anciensAbidjan: numOr(g(["anciensabidjan", "anciens abidjan"])),
+    epousesAnciensAbidjan: numOr(g(["epousesanciensabidjan", "epouses anciens abidjan"])),
+    moyenneParticipation: numOr(g(["moyenneparticipation", "moyenne participation"])),
+    delegationsExterieures: sheetColA(get("Exterieures"), XLSX),
+    abidjanZones: sheetColA(get("Abidjan"), XLSX),
+    interieurLocalites: sheetColA(get("Interieur"), XLSX),
+    participantsParJour,
+    sessions,
+  };
+}
