@@ -78,6 +78,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [searchLigne, setSearchLigne] = useState("");
   const [year, setYear] = useState("");
+  const [du, setDu] = useState("");
+  const [au, setAu] = useState("");
 
   useEffect(() => {
     load();
@@ -113,19 +115,53 @@ export default function App() {
     .filter((l) => l.cahierId === (activeCahier && activeCahier.id))
     .sort((a, b) => (a.date + a.heureDebut).localeCompare(b.date + b.heureDebut));
 
+  const lignesPeriode = useMemo(() => {
+    const dMin = du ? normalizeDate(du) : null;
+    const dMax = au ? normalizeDate(au) : null;
+    return activeLignes.filter((l) => {
+      if (dMin && l.date < dMin) return false;
+      if (dMax && l.date > dMax) return false;
+      return true;
+    });
+  }, [activeLignes, du, au]);
+
   const cahiersFiltres = useMemo(
     () => cahiers.filter((c) => c.nom.toLowerCase().includes(search.trim().toLowerCase())),
     [cahiers, search]
   );
   const lignesFiltrees = useMemo(
     () =>
-      activeLignes.filter((l) =>
+      lignesPeriode.filter((l) =>
         `${l.date} ${l.heureDebut} ${l.heureFin} ${l.nombrePersonnes}`
           .toLowerCase()
           .includes(searchLigne.trim().toLowerCase())
       ),
-    [activeLignes, searchLigne]
+    [lignesPeriode, searchLigne]
   );
+
+  const resumeParPeriode = useMemo(() => {
+    let tTemps = 0, tPart = 0, tCum = 0;
+    for (const l of lignesPeriode) {
+      const tm = tempsMisMin(l.heureDebut, l.heureFin);
+      const cu = cumulMin(tm, l.nombrePersonnes);
+      if (tm !== null) tTemps += tm;
+      if (l.nombrePersonnes) tPart += l.nombrePersonnes;
+      if (cu !== null) tCum += cu;
+    }
+    return { tTemps, tPart, tCum, n: lignesPeriode.length };
+  }, [lignesPeriode]);
+
+  const resumeAffiche = useMemo(() => {
+    let tTemps = 0, tPart = 0, tCum = 0;
+    for (const l of lignesFiltrees) {
+      const tm = tempsMisMin(l.heureDebut, l.heureFin);
+      const cu = cumulMin(tm, l.nombrePersonnes);
+      if (tm !== null) tTemps += tm;
+      if (l.nombrePersonnes) tPart += l.nombrePersonnes;
+      if (cu !== null) tCum += cu;
+    }
+    return { tTemps, tPart, tCum };
+  }, [lignesFiltrees]);
 
   const previewTm = tempsMisMin(form.debut, form.fin);
   const previewPers = parseInt(form.personnes, 10);
@@ -471,6 +507,31 @@ export default function App() {
       <div className="card">
         <div className="table-actions">
           <strong>{activeCahier ? activeCahier.nom : ""} — lignes</strong>
+          <div className="periode-filter">
+            <label>Du{" "}
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="01/08/2025"
+                value={du}
+                onChange={(e) => setDu(formatDateInput(e.target.value))}
+              />
+            </label>
+            <label>Au{" "}
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="31/07/2026"
+                value={au}
+                onChange={(e) => setAu(formatDateInput(e.target.value))}
+              />
+            </label>
+            {(du || au) && (
+              <button type="button" className="link-btn" onClick={() => { setDu(""); setAu(""); }}>
+                Réinitialiser
+              </button>
+            )}
+          </div>
           <input
             type="text"
             placeholder="Filtrer (date, heure, participants)…"
@@ -478,8 +539,15 @@ export default function App() {
             onChange={(e) => setSearchLigne(e.target.value)}
           />
         </div>
-        {activeLignes.length === 0 ? (
-          <div className="empty">Aucune ligne pour ce cahier.</div>
+        <div className="periode-resume">
+          <span>Période : <strong>{du || "…"}</strong> → <strong>{au || "…"}</strong></span>
+          <span>{resumeParPeriode.n} lignes</span>
+          <span>Temps mis : <strong>{fmtDuree(resumeParPeriode.tTemps)}</strong></span>
+          <span>Participants : <strong>{resumeParPeriode.tPart}</strong></span>
+          <span>Cumul : <strong>{fmtDuree(resumeParPeriode.tCum)}</strong></span>
+        </div>
+        {lignesPeriode.length === 0 ? (
+          <div className="empty">Aucune ligne pour ce cahier sur la période.</div>
         ) : lignesFiltrees.length === 0 ? (
           <div className="empty">Aucun résultat pour cette recherche.</div>
         ) : (
@@ -522,8 +590,10 @@ export default function App() {
                 );
               })}
               <tr className="total">
-                <td colSpan={6}>Complet</td>
-                <td>{fmtDuree(completParCahier[activeCahier?.id || ""] || 0)}</td>
+                <td colSpan={4}>Total ({lignesFiltrees.length} lignes)</td>
+                <td>{resumeAffiche.tPart}</td>
+                <td>{fmtDuree(resumeAffiche.tTemps)}</td>
+                <td>{fmtDuree(resumeAffiche.tCum)}</td>
                 <td></td>
               </tr>
             </tbody>

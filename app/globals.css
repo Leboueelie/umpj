@@ -135,6 +135,16 @@ tr.total td { font-weight: 700; background: #fdf3e0; border-top: 2px solid var(-
 .filters select { flex: 0 0 auto; }
 .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
 .table-actions input { font-size: 0.85rem; padding: 6px 8px; min-width: 200px; flex: 1 1 200px; }
+.periode-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; }
+.periode-filter label { display: flex; align-items: center; gap: 4px; }
+.periode-filter input { width: 110px; padding: 5px 7px; font-size: 0.85rem; }
+.periode-resume {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+  background: #f3f6fb; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px; font-size: 0.9rem;
+}
+.periode-resume span { white-space: nowrap; }
+.periode-resume strong { color: var(--navy); }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .del-line { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 0.85rem; }
 .empty { color: var(--muted); font-style: italic; }
