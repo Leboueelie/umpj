@@ -7,6 +7,18 @@ import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
 import { useFeedback } from "@/components/Feedback";
 
+const NOM_VUE_ENSEMBLE = "MAISON DE PRIERE D ABIDJAN POUR TOUTES LES NATIONS";
+
+function normalizeNom(s: string): string {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatDateInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 8);
   const parts: string[] = [];
@@ -111,8 +123,15 @@ export default function App() {
   }, [cahiers, lignesAnnee]);
 
   const activeCahier = cahiers.find((c) => c.id === activeId) || cahiers[0];
+  const isVueEnsemble =
+    !!activeCahier && normalizeNom(activeCahier.nom) === NOM_VUE_ENSEMBLE;
+  const cahierNom = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of cahiers) m[c.id] = c.nom;
+    return m;
+  }, [cahiers]);
   const activeLignes = (lignesAnnee || [])
-    .filter((l) => l.cahierId === (activeCahier && activeCahier.id))
+    .filter((l) => isVueEnsemble || l.cahierId === (activeCahier && activeCahier.id))
     .sort((a, b) => (a.date + a.heureDebut).localeCompare(b.date + b.heureDebut));
 
   const lignesPeriode = useMemo(() => {
@@ -382,9 +401,17 @@ export default function App() {
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>
-          {editingId ? "Modification d'une ligne" : "Saisie d'une ligne"}{" "}
-          {activeCahier ? "— " + activeCahier.nom : ""}
+          {isVueEnsemble
+            ? "Vue d'ensemble (agrégée)"
+            : (editingId ? "Modification d'une ligne" : "Saisie d'une ligne") +
+              (activeCahier ? " — " + activeCahier.nom : "")}
         </h3>
+        {isVueEnsemble ? (
+          <div className="note">
+            Cette vue agrège automatiquement les lignes de <strong>tous les cahiers</strong>.
+            Servez-vous du filtre de période (Du / Au) ci-dessous pour restreindre l'affichage et les totaux.
+          </div>
+        ) : (
         <form onSubmit={submitLigne}>
           <div className="row">
             <div className="field">
@@ -502,11 +529,16 @@ export default function App() {
             </div>
           )}
         </form>
+        )}
       </div>
 
       <div className="card">
         <div className="table-actions">
-          <strong>{activeCahier ? activeCahier.nom : ""} — lignes</strong>
+          <strong>
+            {isVueEnsemble
+              ? "Vue d'ensemble — tous les cahiers"
+              : (activeCahier ? activeCahier.nom : "") + " — lignes"}
+          </strong>
           <div className="periode-filter">
             <label>Du{" "}
               <input
@@ -556,6 +588,7 @@ export default function App() {
             <thead>
               <tr>
                 <th>N°</th>
+                {isVueEnsemble && <th>Cahier</th>}
                 <th>Date</th>
                 <th>Début</th>
                 <th>Fin</th>
@@ -572,6 +605,7 @@ export default function App() {
                 return (
                   <tr key={l.id}>
                     <td>{i + 1}</td>
+                    {isVueEnsemble && <td>{cahierNom[l.cahierId] || "—"}</td>}
                     <td>{fmtDate(l.date)}</td>
                     <td>{l.heureDebut}</td>
                     <td>{l.heureFin}</td>
@@ -590,7 +624,7 @@ export default function App() {
                 );
               })}
               <tr className="total">
-                <td colSpan={4}>Total ({lignesFiltrees.length} lignes)</td>
+                <td colSpan={isVueEnsemble ? 5 : 4}>Total ({lignesFiltrees.length} lignes)</td>
                 <td>{resumeAffiche.tPart}</td>
                 <td>{fmtDuree(resumeAffiche.tTemps)}</td>
                 <td>{fmtDuree(resumeAffiche.tCum)}</td>
