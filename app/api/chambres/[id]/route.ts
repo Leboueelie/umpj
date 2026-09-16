@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const r = await pool.query(
-    `SELECT c.*, c."but" AS fardeau, z."nom" AS "zoneNom", z."groupe" AS "zoneGroupe"
+    `SELECT c.*, z."nom" AS "zoneNom", z."groupe" AS "zoneGroupe"
      FROM "ChambreDePriere" c
      JOIN "Zone" z ON z."id" = c."zoneId"
      WHERE c.id = $1`,
