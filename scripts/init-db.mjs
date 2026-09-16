@@ -105,6 +105,25 @@ ALTER TABLE "EntreeZone" DROP CONSTRAINT IF EXISTS "EntreeZone_zoneId_fkey";
 ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
   FOREIGN KEY ("zoneId") REFERENCES "Zone"("id") ON DELETE CASCADE;
 
+CREATE TABLE IF NOT EXISTS "ChambreDePriere" (
+  "id" TEXT NOT NULL,
+  "zoneId" TEXT NOT NULL,
+  "nom" TEXT NOT NULL,
+  "lieu" TEXT NOT NULL,
+  "fardeau" TEXT NOT NULL,
+  "dirigeants" TEXT NOT NULL,
+  "ordre" INTEGER NOT NULL DEFAULT 0,
+  "actif" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ChambreDePriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "ChambreDePriere_zoneId_idx" ON "ChambreDePriere"("zoneId");
+
+ALTER TABLE "ChambreDePriere" DROP CONSTRAINT IF EXISTS "ChambreDePriere_zoneId_fkey";
+ALTER TABLE "ChambreDePriere" ADD CONSTRAINT "ChambreDePriere_zoneId_fkey"
+  FOREIGN KEY ("zoneId") REFERENCES "Zone"("id") ON DELETE CASCADE;
+
 CREATE TABLE IF NOT EXISTS "Edition" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
   "numero" INTEGER NOT NULL,
@@ -174,6 +193,50 @@ async function main() {
       'M''POUTO','PORT-BOUET','RIVERA 2','ROSIERS','PALMERAIE','YOPOUGON'
     )`
   );
+
+  // Seed des chambres de prière de YOPOUGON (21 chambres)
+  const CHAMBRES_YOPOUGON = [
+    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "L'ACADEMIE PASTORALE DANS NOTRE MINISTERE", dirigeants: "GNAGNE Pierre, GABO Myrlore" },
+    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "MARGUERITE LOMBE ET LA CONQUETE DU S/C DE JERUSALEM", dirigeants: "Deborah KOUASSI" },
+    { lieu: "CENTRE A LEM", fardeau: "LA LOUANGE ET LES ACTIONS DE GRACE A DIEU + PROCLAMATIONS", dirigeants: "EMMANUEL MONDAH" },
+    { lieu: "CHEZ LES DIOPOH (BANCO 2)", fardeau: "CROISSANCE EN NOMBRE ET EN QUALITE DU S/C DE BANCO 2", dirigeants: "KOFFI JULIANA DIOPOH" },
+    { lieu: "GESCO CHEZ LES DJAGOUN", fardeau: "COMMUNION DES ANCIENS D'ABIDJAN AVEC DIEU", dirigeants: "DOUE CATHERINE" },
+    { lieu: "GESCO CHEZ LYDIE KONE", fardeau: "BONIFACE MENYE, L'ECRIVAIN", dirigeants: "AKPA MARINA" },
+    { lieu: "CHEZ LES GOHOUN", fardeau: "KOUASSI MARTIN ET LA CONQUETE DE NIANGON-NORD", dirigeants: "STEPHANIE KOUASSI" },
+    { lieu: "CHEZ LES SEHI", fardeau: "MARIE-LOUISE ET LA CONQUETE DE NIANGON-SUD", dirigeants: "Rolande BITI" },
+    { lieu: "CHEZ LES BROU", fardeau: "COLETTE MENYE ET LA COMMUNION AVEC DIEU", dirigeants: "LYDIE BROU" },
+    { lieu: "CHEZ LES BROU", fardeau: "BROU SEVERIN ET LA CONQUETE DE MILLIONNAIRE", dirigeants: "TOURE MARIAM" },
+    { lieu: "CHEZ LES KOUABLAN", fardeau: "KOUABLAN FIACRE ET LA CONQUETE DE SELMER", dirigeants: "ODILE KOUABLAN" },
+    { lieu: "CHEZ LES EMOLO", fardeau: "OKA EMOLO YANNICK ET LA CONQUETE D'ASSONVON", dirigeants: "MARCELLE EMOLO" },
+    { lieu: "CIE (BUREAU DE LA CONQUETE)", fardeau: "LE DEPARTEMENT NATIONAL DE LA PRODUCTION ET LA DISTRIBUTION DES TRAITES EVANGELIQUES", dirigeants: "HAWA OKA" },
+    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "INNOCENT LOMBE ET LA CONQUETE DE YOPOUGON", dirigeants: "GNAGNE DJOGBO" },
+    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "HINO DANIEL ET LA CONQUETE D'ANDOKOI", dirigeants: "HINO SYLVIE" },
+    { lieu: "CHEZ LES KONNI", fardeau: "LA CONVERSION DES ENFANTS DE YOPOUGON", dirigeants: "KONNI ROSINE" },
+    { lieu: "CHEZ ATTIEGOUA", fardeau: "LA JEUNESSE DE YOPOUGON", dirigeants: "ATTIEGOUA" },
+    { lieu: "CHEZ LES BANHIE", fardeau: "LES COUPLES DE YOPOUGON", dirigeants: "BANHIE & DIANE BLE" },
+    { lieu: "CHEZ LES KOUASSI", fardeau: "LES EVANGELISTES DE YOPOUGON", dirigeants: "KOUASSI AUGUSTIN" },
+    { lieu: "CHEZ LES OULE", fardeau: "LES SEMEURS DE YOPOUGON", dirigeants: "AMANI LAETITIA" },
+    { lieu: "CHEZ LES OULE", fardeau: "PAUL BAH ET LA CONQUETE DU SOUS-CENTRE DE TOITS-ROUGES", dirigeants: "MARIE-CHARLES OULE" },
+  ];
+
+  const zoneYop = await pool.query(`SELECT id FROM "Zone" WHERE "nom" = 'YOPOUGON' LIMIT 1`);
+  if (zoneYop.rowCount > 0) {
+    const yopId = zoneYop.rows[0].id;
+    const existant = await pool.query(`SELECT count(*)::int AS n FROM "ChambreDePriere" WHERE "zoneId" = $1`, [yopId]);
+    if (existant.rows[0].n === 0) {
+      for (let i = 0; i < CHAMBRES_YOPOUGON.length; i++) {
+        const c = CHAMBRES_YOPOUGON[i];
+        await pool.query(
+          `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, "ordre")
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [randomUUID(), yopId, `CHAMBRE DE PRIERE ${i + 1}`, c.lieu, c.fardeau, c.dirigeants, i + 1]
+        );
+      }
+      console.log("Chambres Yopougon seedees :", CHAMBRES_YOPOUGON.length);
+    } else {
+      console.log("Chambres Yopougon deja presentes :", existant.rows[0].n);
+    }
+  }
 
   await pool.end();
 }

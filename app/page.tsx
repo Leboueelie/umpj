@@ -12,6 +12,11 @@ const sections = [
     desc: "Registres de temps de prière par cahier / église.",
   },
   {
+    href: "/chambres",
+    title: "LISTE DES CHAMBRES DE PRIERE",
+    desc: "Liste des chambres de prière par zone, avec détails et gestion.",
+  },
+  {
     href: "/zones",
     title: "Fiche mensuelle des heures de prière par zone",
     desc: "Saisie par zone / région spirituelle, cumul national automatique.",

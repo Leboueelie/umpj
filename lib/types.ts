@@ -64,3 +64,17 @@ export interface Edition {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ChambreDePriere {
+  id: string;
+  zoneId: string;
+  nom: string;
+  lieu: string;
+fardeau: string;
+  dirigeants: string;
+  ordre: number;
+  actif: boolean;
+  createdAt: string;
+  zoneNom?: string;
+  zoneGroupe?: string;
+}
