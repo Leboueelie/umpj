@@ -16,14 +16,13 @@ async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
 }
 
 interface ChambreForm {
-  nom: string;
   lieu: string;
   fardeau: string;
   dirigeants: string;
   contacts: string;
 }
 
-const FORM_VIDE: ChambreForm = { nom: "", lieu: "", fardeau: "", dirigeants: "", contacts: "" };
+const FORM_VIDE: ChambreForm = { lieu: "", fardeau: "", dirigeants: "", contacts: "" };
 
 export default function ChambresPage() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -106,7 +105,7 @@ export default function ChambresPage() {
 
   function openModifier(c: ChambreDePriere) {
     setEditingId(c.id);
-    setForm({ nom: c.nom, lieu: c.lieu, fardeau: c.fardeau, dirigeants: c.dirigeants, contacts: c.contacts });
+    setForm({ lieu: c.lieu, fardeau: c.fardeau, dirigeants: c.dirigeants, contacts: c.contacts });
     setShowForm(true);
   }
 
@@ -315,15 +314,6 @@ export default function ChambresPage() {
               {editingId ? "Modifier la chambre" : "Ajouter une chambre"}
             </h3>
             <form onSubmit={sauver}>
-              <div className="field">
-                <label>Nom</label>
-                <input
-                  type="text"
-                  value={form.nom}
-                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                  required
-                />
-              </div>
               <div className="field">
                 <label>Lieu</label>
                 <input

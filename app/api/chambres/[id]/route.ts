@@ -20,22 +20,21 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PUT(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const nom = (body.nom ?? "").toString().trim();
   const lieu = (body.lieu ?? "").toString().trim();
   const fardeau = (body.fardeau ?? "").toString().trim();
   const dirigeants = (body.dirigeants ?? "").toString().trim();
   const contacts = (body.contacts ?? "").toString().trim();
   const actif = body.actif ?? undefined;
 
-  if (!nom || !lieu || !fardeau || !dirigeants)
+  if (!lieu || !fardeau || !dirigeants)
     return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
 
   const r = await pool.query(
     `UPDATE "ChambreDePriere"
-     SET nom = $1, lieu = $2, fardeau = $3, dirigeants = $4, contacts = $5, "actif" = COALESCE($6, "actif")
-     WHERE id = $7
+     SET lieu = $1, fardeau = $2, dirigeants = $3, contacts = $4, "actif" = COALESCE($5, "actif")
+     WHERE id = $6
      RETURNING *`,
-    [nom, lieu, fardeau, dirigeants, contacts, actif, id]
+    [lieu, fardeau, dirigeants, contacts, actif, id]
   );
   if (r.rowCount === 0)
     return NextResponse.json({ error: "Chambre introuvable." }, { status: 404 });
