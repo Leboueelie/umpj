@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   const lieu = (body.lieu ?? "").toString().trim();
   const fardeau = (body.fardeau ?? "").toString().trim();
   const dirigeants = (body.dirigeants ?? "").toString().trim();
+  const contacts = (body.contacts ?? "").toString().trim();
 
   if (!zoneId || !nom || !lieu || !fardeau || !dirigeants)
     return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
@@ -39,10 +40,10 @@ export async function POST(req: Request) {
 
   const id = crypto.randomUUID();
   const r = await pool.query(
-    `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, "ordre")
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, contacts, "ordre")
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [id, zoneId, nom, lieu, fardeau, dirigeants, maxOrdre.rows[0].n]
+    [id, zoneId, nom, lieu, fardeau, dirigeants, contacts, maxOrdre.rows[0].n]
   );
   return NextResponse.json(r.rows[0], { status: 201 });
 }

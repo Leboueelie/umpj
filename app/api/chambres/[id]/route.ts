@@ -24,6 +24,7 @@ export async function PUT(req: Request, { params }: Params) {
   const lieu = (body.lieu ?? "").toString().trim();
   const fardeau = (body.fardeau ?? "").toString().trim();
   const dirigeants = (body.dirigeants ?? "").toString().trim();
+  const contacts = (body.contacts ?? "").toString().trim();
   const actif = body.actif ?? undefined;
 
   if (!nom || !lieu || !fardeau || !dirigeants)
@@ -31,10 +32,10 @@ export async function PUT(req: Request, { params }: Params) {
 
   const r = await pool.query(
     `UPDATE "ChambreDePriere"
-     SET nom = $1, lieu = $2, fardeau = $3, dirigeants = $4, "actif" = COALESCE($5, "actif")
-     WHERE id = $6
+     SET nom = $1, lieu = $2, fardeau = $3, dirigeants = $4, contacts = $5, "actif" = COALESCE($6, "actif")
+     WHERE id = $7
      RETURNING *`,
-    [nom, lieu, fardeau, dirigeants, actif, id]
+    [nom, lieu, fardeau, dirigeants, contacts, actif, id]
   );
   if (r.rowCount === 0)
     return NextResponse.json({ error: "Chambre introuvable." }, { status: 404 });

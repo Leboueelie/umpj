@@ -20,9 +20,10 @@ interface ChambreForm {
   lieu: string;
   fardeau: string;
   dirigeants: string;
+  contacts: string;
 }
 
-const FORM_VIDE: ChambreForm = { nom: "", lieu: "", fardeau: "", dirigeants: "" };
+const FORM_VIDE: ChambreForm = { nom: "", lieu: "", fardeau: "", dirigeants: "", contacts: "" };
 
 export default function ChambresPage() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -105,7 +106,7 @@ export default function ChambresPage() {
 
   function openModifier(c: ChambreDePriere) {
     setEditingId(c.id);
-    setForm({ nom: c.nom, lieu: c.lieu, fardeau: c.fardeau, dirigeants: c.dirigeants });
+    setForm({ nom: c.nom, lieu: c.lieu, fardeau: c.fardeau, dirigeants: c.dirigeants, contacts: c.contacts });
     setShowForm(true);
   }
 
@@ -234,6 +235,7 @@ export default function ChambresPage() {
                       <th>Lieu</th>
                       <th>Fardeau</th>
                       <th>Dirigeant(s)</th>
+                      <th>Contacts</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -249,6 +251,7 @@ export default function ChambresPage() {
                         <td>{c.lieu}</td>
                         <td>{c.fardeau}</td>
                         <td>{c.dirigeants}</td>
+                        <td>{c.contacts}</td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <button className="link-btn" onClick={() => openModifier(c)}>
                             Modifier
@@ -283,6 +286,10 @@ export default function ChambresPage() {
                 <div>
                   <span className="detail-label">Dirigeant(s)</span>
                   <span className="detail-val">{chambreDetail.dirigeants}</span>
+                </div>
+                <div>
+                  <span className="detail-label">Contacts</span>
+                  <span className="detail-val">{chambreDetail.contacts}</span>
                 </div>
                 <div>
                   <span className="detail-label">Zone</span>
@@ -342,6 +349,14 @@ export default function ChambresPage() {
                   value={form.dirigeants}
                   onChange={(e) => setForm({ ...form, dirigeants: e.target.value })}
                   required
+                />
+              </div>
+              <div className="field">
+                <label>Contacts</label>
+                <input
+                  type="text"
+                  value={form.contacts}
+                  onChange={(e) => setForm({ ...form, contacts: e.target.value })}
                 />
               </div>
               <div className="form-actions">

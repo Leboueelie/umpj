@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS "ChambreDePriere" (
   "lieu" TEXT NOT NULL,
   "fardeau" TEXT NOT NULL,
   "dirigeants" TEXT NOT NULL,
+  "contacts" TEXT NOT NULL DEFAULT '',
   "ordre" INTEGER NOT NULL DEFAULT 0,
   "actif" BOOLEAN NOT NULL DEFAULT true,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -196,27 +197,27 @@ async function main() {
 
   // Seed des chambres de prière de YOPOUGON (21 chambres)
   const CHAMBRES_YOPOUGON = [
-    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "L'ACADEMIE PASTORALE DANS NOTRE MINISTERE", dirigeants: "GNAGNE Pierre, GABO Myrlore" },
-    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "MARGUERITE LOMBE ET LA CONQUETE DU S/C DE JERUSALEM", dirigeants: "Deborah KOUASSI" },
-    { lieu: "CENTRE A LEM", fardeau: "LA LOUANGE ET LES ACTIONS DE GRACE A DIEU + PROCLAMATIONS", dirigeants: "EMMANUEL MONDAH" },
-    { lieu: "CHEZ LES DIOPOH (BANCO 2)", fardeau: "CROISSANCE EN NOMBRE ET EN QUALITE DU S/C DE BANCO 2", dirigeants: "KOFFI JULIANA DIOPOH" },
-    { lieu: "GESCO CHEZ LES DJAGOUN", fardeau: "COMMUNION DES ANCIENS D'ABIDJAN AVEC DIEU", dirigeants: "DOUE CATHERINE" },
-    { lieu: "GESCO CHEZ LYDIE KONE", fardeau: "BONIFACE MENYE, L'ECRIVAIN", dirigeants: "AKPA MARINA" },
-    { lieu: "CHEZ LES GOHOUN", fardeau: "KOUASSI MARTIN ET LA CONQUETE DE NIANGON-NORD", dirigeants: "STEPHANIE KOUASSI" },
-    { lieu: "CHEZ LES SEHI", fardeau: "MARIE-LOUISE ET LA CONQUETE DE NIANGON-SUD", dirigeants: "Rolande BITI" },
-    { lieu: "CHEZ LES BROU", fardeau: "COLETTE MENYE ET LA COMMUNION AVEC DIEU", dirigeants: "LYDIE BROU" },
-    { lieu: "CHEZ LES BROU", fardeau: "BROU SEVERIN ET LA CONQUETE DE MILLIONNAIRE", dirigeants: "TOURE MARIAM" },
-    { lieu: "CHEZ LES KOUABLAN", fardeau: "KOUABLAN FIACRE ET LA CONQUETE DE SELMER", dirigeants: "ODILE KOUABLAN" },
-    { lieu: "CHEZ LES EMOLO", fardeau: "OKA EMOLO YANNICK ET LA CONQUETE D'ASSONVON", dirigeants: "MARCELLE EMOLO" },
-    { lieu: "CIE (BUREAU DE LA CONQUETE)", fardeau: "LE DEPARTEMENT NATIONAL DE LA PRODUCTION ET LA DISTRIBUTION DES TRAITES EVANGELIQUES", dirigeants: "HAWA OKA" },
-    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "INNOCENT LOMBE ET LA CONQUETE DE YOPOUGON", dirigeants: "GNAGNE DJOGBO" },
-    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "HINO DANIEL ET LA CONQUETE D'ANDOKOI", dirigeants: "HINO SYLVIE" },
-    { lieu: "CHEZ LES KONNI", fardeau: "LA CONVERSION DES ENFANTS DE YOPOUGON", dirigeants: "KONNI ROSINE" },
-    { lieu: "CHEZ ATTIEGOUA", fardeau: "LA JEUNESSE DE YOPOUGON", dirigeants: "ATTIEGOUA" },
-    { lieu: "CHEZ LES BANHIE", fardeau: "LES COUPLES DE YOPOUGON", dirigeants: "BANHIE & DIANE BLE" },
-    { lieu: "CHEZ LES KOUASSI", fardeau: "LES EVANGELISTES DE YOPOUGON", dirigeants: "KOUASSI AUGUSTIN" },
-    { lieu: "CHEZ LES OULE", fardeau: "LES SEMEURS DE YOPOUGON", dirigeants: "AMANI LAETITIA" },
-    { lieu: "CHEZ LES OULE", fardeau: "PAUL BAH ET LA CONQUETE DU SOUS-CENTRE DE TOITS-ROUGES", dirigeants: "MARIE-CHARLES OULE" },
+    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "L'ACADEMIE PASTORALE DANS NOTRE MINISTERE", dirigeants: "GNAGNE Pierre, GABO Myrlore", contacts: "" },
+    { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "MARGUERITE LOMBE ET LA CONQUETE DU S/C DE JERUSALEM", dirigeants: "Deborah KOUASSI", contacts: "" },
+    { lieu: "CENTRE A LEM", fardeau: "LA LOUANGE ET LES ACTIONS DE GRACE A DIEU + PROCLAMATIONS", dirigeants: "EMMANUEL MONDAH", contacts: "" },
+    { lieu: "CHEZ LES DIOPOH (BANCO 2)", fardeau: "CROISSANCE EN NOMBRE ET EN QUALITE DU S/C DE BANCO 2", dirigeants: "KOFFI JULIANA DIOPOH", contacts: "" },
+    { lieu: "GESCO CHEZ LES DJAGOUN", fardeau: "COMMUNION DES ANCIENS D'ABIDJAN AVEC DIEU", dirigeants: "DOUE CATHERINE", contacts: "" },
+    { lieu: "GESCO CHEZ LYDIE KONE", fardeau: "BONIFACE MENYE, L'ECRIVAIN", dirigeants: "AKPA MARINA", contacts: "" },
+    { lieu: "CHEZ LES GOHOUN", fardeau: "KOUASSI MARTIN ET LA CONQUETE DE NIANGON-NORD", dirigeants: "STEPHANIE KOUASSI", contacts: "" },
+    { lieu: "CHEZ LES SEHI", fardeau: "MARIE-LOUISE ET LA CONQUETE DE NIANGON-SUD", dirigeants: "Rolande BITI", contacts: "" },
+    { lieu: "CHEZ LES BROU", fardeau: "COLETTE MENYE ET LA COMMUNION AVEC DIEU", dirigeants: "LYDIE BROU", contacts: "" },
+    { lieu: "CHEZ LES BROU", fardeau: "BROU SEVERIN ET LA CONQUETE DE MILLIONNAIRE", dirigeants: "TOURE MARIAM", contacts: "" },
+    { lieu: "CHEZ LES KOUABLAN", fardeau: "KOUABLAN FIACRE ET LA CONQUETE DE SELMER", dirigeants: "ODILE KOUABLAN", contacts: "" },
+    { lieu: "CHEZ LES EMOLO", fardeau: "OKA EMOLO YANNICK ET LA CONQUETE D'ASSONVON", dirigeants: "MARCELLE EMOLO", contacts: "" },
+    { lieu: "CIE (BUREAU DE LA CONQUETE)", fardeau: "LE DEPARTEMENT NATIONAL DE LA PRODUCTION ET LA DISTRIBUTION DES TRAITES EVANGELIQUES", dirigeants: "HAWA OKA", contacts: "" },
+    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "INNOCENT LOMBE ET LA CONQUETE DE YOPOUGON", dirigeants: "GNAGNE DJOGBO", contacts: "" },
+    { lieu: "ANDOKOI (CHAMBRE DE PRIERE)", fardeau: "HINO DANIEL ET LA CONQUETE D'ANDOKOI", dirigeants: "HINO SYLVIE", contacts: "" },
+    { lieu: "CHEZ LES KONNI", fardeau: "LA CONVERSION DES ENFANTS DE YOPOUGON", dirigeants: "KONNI ROSINE", contacts: "" },
+    { lieu: "CHEZ ATTIEGOUA", fardeau: "LA JEUNESSE DE YOPOUGON", dirigeants: "ATTIEGOUA", contacts: "" },
+    { lieu: "CHEZ LES BANHIE", fardeau: "LES COUPLES DE YOPOUGON", dirigeants: "BANHIE & DIANE BLE", contacts: "" },
+    { lieu: "CHEZ LES KOUASSI", fardeau: "LES EVANGELISTES DE YOPOUGON", dirigeants: "KOUASSI AUGUSTIN", contacts: "" },
+    { lieu: "CHEZ LES OULE", fardeau: "LES SEMEURS DE YOPOUGON", dirigeants: "AMANI LAETITIA", contacts: "" },
+    { lieu: "CHEZ LES OULE", fardeau: "PAUL BAH ET LA CONQUETE DU SOUS-CENTRE DE TOITS-ROUGES", dirigeants: "MARIE-CHARLES OULE", contacts: "" },
   ];
 
   const zoneYop = await pool.query(`SELECT id FROM "Zone" WHERE "nom" = 'YOPOUGON' LIMIT 1`);
@@ -227,14 +228,51 @@ async function main() {
       for (let i = 0; i < CHAMBRES_YOPOUGON.length; i++) {
         const c = CHAMBRES_YOPOUGON[i];
         await pool.query(
-          `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, "ordre")
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [randomUUID(), yopId, `CHAMBRE DE PRIERE ${i + 1}`, c.lieu, c.fardeau, c.dirigeants, i + 1]
+          `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, contacts, "ordre")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [randomUUID(), yopId, `CHAMBRE DE PRIERE ${i + 1}`, c.lieu, c.fardeau, c.dirigeants, c.contacts, i + 1]
         );
       }
       console.log("Chambres Yopougon seedees :", CHAMBRES_YOPOUGON.length);
     } else {
       console.log("Chambres Yopougon deja presentes :", existant.rows[0].n);
+    }
+  }
+
+  // Seed des chambres de prière de ADJAME-ATTECOUBE (14 chambres)
+  const CHAMBRES_ADJAME = [
+    { lieu: "220 LOGEMENTS", fardeau: "BM ET SON INTIMITÉ AVEC DIEU", dirigeants: "MBAMA FLORENCE", contacts: "07 07 46 07 97" },
+    { lieu: "TEMPLE", fardeau: "SEMEURS", dirigeants: "LIDWINE NAPIASSOU", contacts: "05 04 36 95 55" },
+    { lieu: "PAILLET", fardeau: "BM ET LA PUISSANCE POUR OPÉRER LES MIRACLES ÉVANGÉLIQUES", dirigeants: "AKA PULCHÉRIE", contacts: "07 09 68 67 83" },
+    { lieu: "TEMPLE", fardeau: "JEUNESSES", dirigeants: "KACOU ANINI CATHERINE", contacts: "07 07 92 13 82" },
+    { lieu: "AGBAN", fardeau: "ÉVANGÉLISATION ET IMPLANTATIONS DES ÉGLISES", dirigeants: "AKA JOËLLE", contacts: "07 07 20 75 32" },
+    { lieu: "WILLIAMS VILLE", fardeau: "LA CROISSANCE ET IMPLANTATIONS DES ASSEMBLÉES", dirigeants: "LAGO ODILE", contacts: "07 49 32 68 74" },
+    { lieu: "136 LOGEMENTS", fardeau: "LES ENFANTS", dirigeants: "YAO PÉLAGIE", contacts: "07 09 74 74 78" },
+    { lieu: "PAILLET", fardeau: "BM ET LES VOYAGES MISSIONNAIRES", dirigeants: "KUITE FLORENCE", contacts: "07 59 27 00 07" },
+    { lieu: "PAILLET", fardeau: "BM ET LE MINISTÈRE DE LA PAROLE (ENSEIGNEMENTS)", dirigeants: "KANA RACHELLE", contacts: "07 48 30 63 85" },
+    { lieu: "WILLIAMS VILLE", fardeau: "BM ET LES RETRAITES DES MARDIS", dirigeants: "GUE MARIE LAURE", contacts: "07 89 86 39 75" },
+    { lieu: "TEMPLE", fardeau: "ANCIEN MATHIAS DATE ET LA CONQUÊTE D'ADJAME", dirigeants: "KOUABENAN ESTELLE", contacts: "07 47 48 57 83" },
+    { lieu: "ATECOUBE", fardeau: "LA SAINTETÉ : LA VIE DE SANCTIFICATION DE L'ÉGLISE", dirigeants: "N'GORAN MARJOLAINE", contacts: "05 56 99 90 15" },
+    { lieu: "ATECOUBE", fardeau: "LA CROISSANCE ET L'IMPLANTATION DES ASSEMBLÉES", dirigeants: "N'GORAN MARJOLAINE & CHRISTINE", contacts: "05 56 99 90 15" },
+    { lieu: "WILLIAMS VILLE", fardeau: "LA MARCHE ET LA SANCTIFICATION DE LA FAMILLE MENYE", dirigeants: "DEGUENOVO MARIE CLAIRE", contacts: "05 44 53 24 75" },
+  ];
+
+  const zoneAdj = await pool.query(`SELECT id FROM "Zone" WHERE "nom" = 'ADJAME-ATTECOUBE-WYLLY' LIMIT 1`);
+  if (zoneAdj.rowCount > 0) {
+    const adjId = zoneAdj.rows[0].id;
+    const existant = await pool.query(`SELECT count(*)::int AS n FROM "ChambreDePriere" WHERE "zoneId" = $1`, [adjId]);
+    if (existant.rows[0].n === 0) {
+      for (let i = 0; i < CHAMBRES_ADJAME.length; i++) {
+        const c = CHAMBRES_ADJAME[i];
+        await pool.query(
+          `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, contacts, "ordre")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [randomUUID(), adjId, `CHAMBRE DE PRIERE ${i + 1}`, c.lieu, c.fardeau, c.dirigeants, c.contacts, i + 1]
+        );
+      }
+      console.log("Chambres Adjame-Attecoube seedees :", CHAMBRES_ADJAME.length);
+    } else {
+      console.log("Chambres Adjame-Attecoube deja presentes :", existant.rows[0].n);
     }
   }
 

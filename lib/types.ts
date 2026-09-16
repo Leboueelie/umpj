@@ -70,8 +70,9 @@ export interface ChambreDePriere {
   zoneId: string;
   nom: string;
   lieu: string;
-fardeau: string;
+  fardeau: string;
   dirigeants: string;
+  contacts: string;
   ordre: number;
   actif: boolean;
   createdAt: string;
