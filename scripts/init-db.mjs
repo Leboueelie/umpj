@@ -195,6 +195,15 @@ async function main() {
     )`
   );
 
+  // Migration: renommer "but" -> "fardeau" si besoin + ajouter "contacts"
+  await pool.query(`
+    DO $$
+    BEGIN
+      BEGIN ALTER TABLE "ChambreDePriere" RENAME COLUMN "but" TO "fardeau"; EXCEPTION WHEN undefined_column THEN END;
+      BEGIN ALTER TABLE "ChambreDePriere" ADD COLUMN "contacts" TEXT NOT NULL DEFAULT ''; EXCEPTION WHEN duplicate_column THEN END;
+    END $$;
+  `);
+
   // Seed des chambres de prière de YOPOUGON (21 chambres)
   const CHAMBRES_YOPOUGON = [
     { lieu: "MAISON DE PRIERE DE YOPOUGON POUR TOUTES LES NATIONS", fardeau: "L'ACADEMIE PASTORALE DANS NOTRE MINISTERE", dirigeants: "GNAGNE Pierre, GABO Myrlore", contacts: "" },
@@ -273,6 +282,36 @@ async function main() {
       console.log("Chambres Adjame-Attecoube seedees :", CHAMBRES_ADJAME.length);
     } else {
       console.log("Chambres Adjame-Attecoube deja presentes :", existant.rows[0].n);
+    }
+  }
+
+  // Seed des chambres de prière de COCODY (7 chambres — implantation 02/05/2026)
+  const CHAMBRES_COCODY = [
+    { lieu: "PLATEAU — chez les OUATTARA", fardeau: "La santé physique et spirituelle de CM ; BN et la conquête du plateau", dirigeants: "Carole OUATTARA", contacts: "" },
+    { lieu: "COCODY CENTRE — chez les HUE", fardeau: "Santé physique et Spirituelle de ELO ; Conquête des enfants dans la zone de cocody-plateau ; Succès de ELO auprès du Ministère des Jeunes et Etudiants ; Protection physique et Spirituelle de BM ; Protection physique de BM : Anatomie", dirigeants: "Annick HUE, Cécile N'DA, Cécile KOUAKOU, Marguerite LETCHE, Couple DE SAHI, Yvonne TAPE, Danielle ALLA", contacts: "" },
+    { lieu: "ANGRÉ — chez les GUE", fardeau: "Protection de BM et de son ministère ; FGK, les dirigeants et la conquête d'Angré ; La croissance quantitative et qualitative des Églises de notre œuvre à travers le monde", dirigeants: "Francis GUE KPAN, Kareine YAO, Delphine N'DRI", contacts: "" },
+    { lieu: "ANGRÉ — chez la sœur Suzanne AMICHIA", fardeau: "Protection de BM et de son ministère", dirigeants: "Suzanne AMICHIA", contacts: "" },
+    { lieu: "ANGRÉ — chez les DOUA-SAHI", fardeau: "Succès global de CM ; DSD en tant que DGA de la RTVC et PCA de la CMCI", dirigeants: "Elisabeth DOUA-SAHI", contacts: "" },
+    { lieu: "BESSIKOI DJOROGOBITÉ — chez la sœur SARA LEMARQUANT", fardeau: "YDH, les dirigeants, et la conquête de Djorogobité ; YDH et la délivrance des enfants", dirigeants: "Alvine YAO", contacts: "" },
+    { lieu: "BESSIKOI DJOROGOBITÉ — chez la sr Liliane KONAN", fardeau: "Les parents et les enfants", dirigeants: "Alvine YAO", contacts: "" },
+  ];
+
+  const zoneCocody = await pool.query(`SELECT id FROM "Zone" WHERE "nom" = 'COCODY' LIMIT 1`);
+  if (zoneCocody.rowCount > 0) {
+    const cocodyId = zoneCocody.rows[0].id;
+    const existant = await pool.query(`SELECT count(*)::int AS n FROM "ChambreDePriere" WHERE "zoneId" = $1`, [cocodyId]);
+    if (existant.rows[0].n === 0) {
+      for (let i = 0; i < CHAMBRES_COCODY.length; i++) {
+        const c = CHAMBRES_COCODY[i];
+        await pool.query(
+          `INSERT INTO "ChambreDePriere" (id, "zoneId", nom, lieu, fardeau, dirigeants, contacts, "ordre")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [randomUUID(), cocodyId, `CHAMBRE DE PRIERE ${i + 1}`, c.lieu, c.fardeau, c.dirigeants, c.contacts, i + 1]
+        );
+      }
+      console.log("Chambres Cocody seedees :", CHAMBRES_COCODY.length);
+    } else {
+      console.log("Chambres Cocody deja presentes :", existant.rows[0].n);
     }
   }
 
