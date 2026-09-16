@@ -299,7 +299,7 @@ export default function ChambresPage() {
                 </div>
                 <div>
                   <span className="detail-label">Date de création</span>
-                  <span className="detail-val">{chambreDetail.createdAt}</span>
+                  <span className="detail-val">{new Date(chambreDetail.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               </div>
             </div>
