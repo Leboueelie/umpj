@@ -29,6 +29,7 @@ const COMITES = [
   "JEUNESSES",
   "JEUNESSES CBN",
   "Sonorisation",
+  "TEMOIGNAGE",
 ];
 
 function fmtTaille(octets: number): string {
