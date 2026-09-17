@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import type { ActionDeGrace } from "@/lib/types";
+import type { ActionDeGrace, Zone } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
 
 const COMITES = [
@@ -39,15 +39,18 @@ function fmtTaille(octets: number): string {
 
 export default function ActionsDeGracePage() {
   const [fichiers, setFichiers] = useState<ActionDeGrace[]>([]);
-  const [comiteActif, setComiteActif] = useState<string | null>(null);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [onglet, setOnglet] = useState<"comite" | "region">("comite");
+  const [actif, setActif] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const { confirm, toast, node } = useFeedback();
 
-  async function loadFichiers(comite?: string | null) {
+  async function loadFichiers(type: string, nom?: string | null) {
     try {
-      const url = comite ? `/api/actions-de-grace?comite=${encodeURIComponent(comite)}` : "/api/actions-de-grace";
+      let url = `/api/actions-de-grace?type=${type}`;
+      if (nom) url += `&comite=${encodeURIComponent(nom)}`;
       const r = await fetch(url);
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
@@ -58,44 +61,54 @@ export default function ActionsDeGracePage() {
   }
 
   useEffect(() => {
-    loadFichiers();
+    fetch("/api/zones").then((r) => r.json()).then(setZones).catch(() => {});
+    loadFichiers("comite");
   }, []);
 
-  const nombreParComite = useMemo(() => {
+  const nombreParNom = useMemo(() => {
     const m: Record<string, number> = {};
     for (const f of fichiers) m[f.comite] = (m[f.comite] || 0) + 1;
     return m;
   }, [fichiers]);
 
-  const comitesFiltres = useMemo(() => {
-    if (!search) return COMITES;
-    return COMITES.filter((c) => c.toLowerCase().includes(search.toLowerCase()));
-  }, [search]);
+  const items = useMemo(() => {
+    const list = onglet === "comite" ? COMITES : zones.map((z) => z.nom);
+    if (!search) return list;
+    return list.filter((c) => c.toLowerCase().includes(search.toLowerCase()));
+  }, [onglet, zones, search]);
 
-  const fichiersComite = useMemo(() => {
-    if (!comiteActif) return [];
-    return fichiers.filter((f) => f.comite === comiteActif);
-  }, [fichiers, comiteActif]);
+  const fichiersActifs = useMemo(() => {
+    if (!actif) return [];
+    return fichiers.filter((f) => f.comite === actif);
+  }, [fichiers, actif]);
 
-  function selectingComite(c: string) {
-    setComiteActif(c);
-    loadFichiers(c);
+  function selecting(nom: string) {
+    setActif(nom);
+    loadFichiers(onglet, nom);
+  }
+
+  function changerOnglet(o: "comite" | "region") {
+    setOnglet(o);
+    setActif(null);
+    setSearch("");
+    loadFichiers(o);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !comiteActif) return;
+    if (!file || !actif) return;
     setError("");
     setUploading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("comite", comiteActif);
+      fd.append("comite", actif);
+      fd.append("type", onglet);
       const r = await fetch("/api/actions-de-grace", { method: "POST", body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       toast("Fichier uploadé.", "success");
-      await loadFichiers(comiteActif);
+      await loadFichiers(onglet, actif);
     } catch (e) {
       setError((e as Error).message);
       toast((e as Error).message, "error");
@@ -112,7 +125,7 @@ export default function ActionsDeGracePage() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       toast("Fichier supprimé.", "success");
-      await loadFichiers(comiteActif);
+      await loadFichiers(onglet, actif);
     } catch (e) {
       setError((e as Error).message);
       toast((e as Error).message, "error");
@@ -123,6 +136,8 @@ export default function ActionsDeGracePage() {
     window.open(`/api/actions-de-grace/${id}/download`, "_blank");
   }
 
+  const labelOnglet = onglet === "comite" ? "comité" : "région";
+
   return (
     <main className="wrap">
       <Link href="/" className="back-link">← Accueil</Link>
@@ -131,8 +146,8 @@ export default function ActionsDeGracePage() {
         <div className="titles">
           <h1>Actions de Grâce</h1>
           <div className="sub">
-            {comiteActif
-              ? `${comiteActif} — ${fichiersComite.length} fichier(s)`
+            {actif
+              ? `${actif} — ${fichiersActifs.length} fichier(s)`
               : `${fichiers.length} fichiers au total`}
           </div>
         </div>
@@ -140,27 +155,45 @@ export default function ActionsDeGracePage() {
 
       {error && <div className="err">{error}</div>}
 
-      {/* Grille des comités */}
-      {!comiteActif && (
-        <div className="card">
+      {/* Onglets */}
+      <div className="card" style={{ marginBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+        <div className="onglets-ag">
+          <button
+            className={`onglet-ag ${onglet === "comite" ? "actif" : ""}`}
+            onClick={() => changerOnglet("comite")}
+          >
+            Par Comité ({COMITES.length})
+          </button>
+          <button
+            className={`onglet-ag ${onglet === "region" ? "actif" : ""}`}
+            onClick={() => changerOnglet("region")}
+          >
+            Par Région ({zones.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Grille */}
+      {!actif && (
+        <div className="card" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
           <div className="filters">
             <input
               type="text"
-              placeholder="Rechercher un comité…"
+              placeholder={`Rechercher un ${labelOnglet}…`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="chambres-grid">
-            {comitesFiltres.map((c) => (
+            {items.map((c) => (
               <div
                 key={c}
                 className="chambre-card"
-                onClick={() => selectingComite(c)}
+                onClick={() => selecting(c)}
               >
                 <div className="chambre-card-nom">{c}</div>
                 <div className="chambre-card-nb">
-                  {nombreParComite[c] || 0} fichier(s)
+                  {nombreParNom[c] || 0} fichier(s)
                 </div>
               </div>
             ))}
@@ -168,11 +201,11 @@ export default function ActionsDeGracePage() {
         </div>
       )}
 
-      {/* Liste des fichiers d'un comité */}
-      {comiteActif && (
+      {/* Liste des fichiers */}
+      {actif && (
         <div className="card">
           <div className="table-actions">
-            <button className="link-btn" onClick={() => setComiteActif(null)}>
+            <button className="link-btn" onClick={() => setActif(null)}>
               ← Retour à la grille
             </button>
             <label className={`btn ${uploading ? "disabled" : ""}`}>
@@ -187,8 +220,8 @@ export default function ActionsDeGracePage() {
             </label>
           </div>
 
-          {fichiersComite.length === 0 ? (
-            <div className="empty">Aucun fichier pour ce comité.</div>
+          {fichiersActifs.length === 0 ? (
+            <div className="empty">Aucun fichier pour ce {labelOnglet}.</div>
           ) : (
             <div className="table-scroll">
               <table>
@@ -201,7 +234,7 @@ export default function ActionsDeGracePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {fichiersComite.map((f) => (
+                  {fichiersActifs.map((f) => (
                     <tr key={f.id}>
                       <td>{f.nomFichier}</td>
                       <td>{fmtTaille(f.taille)}</td>

@@ -266,6 +266,16 @@ tr.manquant input { border-color: #f0b27a; }
 
 .btn.disabled { opacity: 0.6; pointer-events: none; }
 
+.onglets-ag { display: flex; gap: 0; }
+.onglet-ag {
+  flex: 1; padding: 10px 16px; border: none; background: #e5e7eb; color: #1f2933;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.onglet-ag:first-child { border-radius: 6px 0 0 6px; }
+.onglet-ag:last-child { border-radius: 0 6px 6px 0; }
+.onglet-ag.actif { background: var(--navy); color: #fff; }
+.onglet-ag:hover:not(.actif) { background: #d1d5db; }
+
 @media (max-width: 640px) {
   .ed-list, .ed-list-3 { column-count: 1; }
   .grid-2 { grid-template-columns: 1fr; }

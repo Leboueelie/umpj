@@ -82,6 +82,7 @@ export interface ChambreDePriere {
 
 export interface ActionDeGrace {
   id: string;
+  type: string; // "comite" | "region"
   comite: string;
   nomFichier: string;
   taille: number;

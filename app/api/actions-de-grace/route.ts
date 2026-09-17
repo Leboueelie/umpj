@@ -4,12 +4,19 @@ import { pool } from "@/lib/db";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const comite = searchParams.get("comite");
-  let query = `SELECT id, comite, "nomFichier", taille, "createdAt" FROM "ActionDeGrace"`;
+  const type = searchParams.get("type");
+  let query = `SELECT id, type, comite, "nomFichier", taille, "createdAt" FROM "ActionDeGrace"`;
+  const conditions: string[] = [];
   const params: any[] = [];
-  if (comite) {
-    query += ` WHERE comite = $1`;
-    params.push(comite);
+  if (type) {
+    params.push(type);
+    conditions.push(`type = $${params.length}`);
   }
+  if (comite) {
+    params.push(comite);
+    conditions.push(`comite = $${params.length}`);
+  }
+  if (conditions.length > 0) query += ` WHERE ${conditions.join(" AND ")}`;
   query += ` ORDER BY "createdAt" DESC`;
   const r = await pool.query(query, params);
   return NextResponse.json(r.rows);
@@ -21,9 +28,10 @@ export async function POST(req: Request) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const comite = (formData.get("comite") ?? "").toString().trim();
+  const type = (formData.get("type") ?? "comite").toString().trim();
 
   if (!file || !comite)
-    return NextResponse.json({ error: "Fichier et comité requis." }, { status: 400 });
+    return NextResponse.json({ error: "Fichier et comité/région requis." }, { status: 400 });
 
   if (file.type !== "application/pdf")
     return NextResponse.json({ error: "Seuls les fichiers PDF sont acceptés." }, { status: 400 });
@@ -35,10 +43,10 @@ export async function POST(req: Request) {
   const id = crypto.randomUUID();
 
   await pool.query(
-    `INSERT INTO "ActionDeGrace" (id, comite, "nomFichier", data, taille)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [id, comite, file.name, buffer, file.size]
+    `INSERT INTO "ActionDeGrace" (id, type, comite, "nomFichier", data, taille)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, type, comite, file.name, buffer, file.size]
   );
 
-  return NextResponse.json({ id, comite, nomFichier: file.name, taille: file.size }, { status: 201 });
+  return NextResponse.json({ id, type, comite, nomFichier: file.name, taille: file.size }, { status: 201 });
 }

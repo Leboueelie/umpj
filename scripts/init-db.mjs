@@ -107,6 +107,7 @@ ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
 
 CREATE TABLE IF NOT EXISTS "ActionDeGrace" (
   "id" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'comite',
   "comite" TEXT NOT NULL,
   "nomFichier" TEXT NOT NULL,
   "data" BYTEA NOT NULL,
@@ -116,6 +117,7 @@ CREATE TABLE IF NOT EXISTS "ActionDeGrace" (
 );
 
 CREATE INDEX IF NOT EXISTS "ActionDeGrace_comite_idx" ON "ActionDeGrace"("comite");
+CREATE INDEX IF NOT EXISTS "ActionDeGrace_type_idx" ON "ActionDeGrace"("type");
 
 CREATE TABLE IF NOT EXISTS "ChambreDePriere" (
   "id" TEXT NOT NULL,
@@ -173,6 +175,7 @@ async function main() {
       BEGIN ALTER TABLE "EntreeZone" DROP COLUMN IF EXISTS "heureDebut"; EXCEPTION WHEN others THEN END;
       BEGIN ALTER TABLE "EntreeZone" DROP COLUMN IF EXISTS "heureFin"; EXCEPTION WHEN others THEN END;
       BEGIN ALTER TABLE "Zone" ADD COLUMN "groupe" TEXT NOT NULL DEFAULT 'interieur'; EXCEPTION WHEN duplicate_column THEN END;
+      BEGIN ALTER TABLE "ActionDeGrace" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'comite'; EXCEPTION WHEN duplicate_column THEN END;
     END $$;
   `);
 
