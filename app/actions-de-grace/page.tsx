@@ -72,7 +72,7 @@ export default function ActionsDeGracePage() {
   }, [fichiers]);
 
   const items = useMemo(() => {
-    const list = onglet === "comite" ? COMITES : zones.map((z) => z.nom);
+    const list = onglet === "comite" ? COMITES : zones.filter(z => z.groupe === "interieur").map((z) => z.nom);
     if (!search) return list;
     return list.filter((c) => c.toLowerCase().includes(search.toLowerCase()));
   }, [onglet, zones, search]);
