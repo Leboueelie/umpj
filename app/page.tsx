@@ -31,6 +31,11 @@ const sections = [
     title: "EDITIONS DE L'UMPJ",
     desc: "Rapports par édition (modèle : 31e édition, Février 2026).",
   },
+  {
+    href: "/actions-de-grace",
+    title: "ACTIONS DE GRÂCE",
+    desc: "Upload, téléchargement et impression de fichiers PDF par comité.",
+  },
 ];
 
 export default function Home() {

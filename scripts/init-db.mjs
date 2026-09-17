@@ -105,6 +105,18 @@ ALTER TABLE "EntreeZone" DROP CONSTRAINT IF EXISTS "EntreeZone_zoneId_fkey";
 ALTER TABLE "EntreeZone" ADD CONSTRAINT "EntreeZone_zoneId_fkey"
   FOREIGN KEY ("zoneId") REFERENCES "Zone"("id") ON DELETE CASCADE;
 
+CREATE TABLE IF NOT EXISTS "ActionDeGrace" (
+  "id" TEXT NOT NULL,
+  "comite" TEXT NOT NULL,
+  "nomFichier" TEXT NOT NULL,
+  "data" BYTEA NOT NULL,
+  "taille" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ActionDeGrace_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "ActionDeGrace_comite_idx" ON "ActionDeGrace"("comite");
+
 CREATE TABLE IF NOT EXISTS "ChambreDePriere" (
   "id" TEXT NOT NULL,
   "zoneId" TEXT NOT NULL,

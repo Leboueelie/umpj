@@ -79,3 +79,11 @@ export interface ChambreDePriere {
   zoneNom?: string;
   zoneGroupe?: string;
 }
+
+export interface ActionDeGrace {
+  id: string;
+  comite: string;
+  nomFichier: string;
+  taille: number;
+  createdAt: string;
+}

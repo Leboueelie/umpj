@@ -263,6 +263,8 @@ tr.manquant input { border-color: #f0b27a; }
 .detail-label { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
 .detail-val { display: block; font-size: 0.95rem; color: var(--text); }
 
+.btn.disabled { opacity: 0.6; pointer-events: none; }
+
 @media (max-width: 640px) {
   .ed-list, .ed-list-3 { column-count: 1; }
   .grid-2 { grid-template-columns: 1fr; }
