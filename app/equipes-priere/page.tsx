@@ -268,6 +268,7 @@ export default function EquipesPrierePage() {
                     inputMode="numeric"
                     placeholder="29/08/2026"
                     value={form.dateDebut}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setForm({ ...form, dateDebut: formatDateInput(e.target.value) })
                     }
@@ -280,6 +281,7 @@ export default function EquipesPrierePage() {
                     inputMode="numeric"
                     placeholder="02/09/2026"
                     value={form.dateFin}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       setForm({ ...form, dateFin: formatDateInput(e.target.value) })
                     }
