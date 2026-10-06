@@ -356,10 +356,13 @@ export default function EquipesPrierePage() {
                     <tbody>
                       {equipes.map((eq, i) => {
                         const volume = eq.tempsMis * eq.nombrePersonnes;
+                        // Extraire uniquement la partie date (YYYY-MM-DD) en supprimant le timestamp
+                        const dateDebut = eq.dateDebut.split('T')[0];
+                        const dateFin = eq.dateFin.split('T')[0];
                         const periode =
-                          eq.dateDebut === eq.dateFin
-                            ? fmtDate(eq.dateDebut)
-                            : `${fmtDate(eq.dateDebut)} au ${fmtDate(eq.dateFin)}`;
+                          dateDebut === dateFin
+                            ? fmtDate(dateDebut)
+                            : `${fmtDate(dateDebut)} au ${fmtDate(dateFin)}`;
                         return (
                           <tr key={eq.id}>
                             <td>{i + 1}</td>
