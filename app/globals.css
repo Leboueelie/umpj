@@ -109,6 +109,20 @@ select {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
 .modal-msg { margin: 0 0 18px; font-size: 0.95rem; line-height: 1.4; }
+.modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(246, 167, 16, 0.1);
+}
 
 .toast-wrap {
   position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);

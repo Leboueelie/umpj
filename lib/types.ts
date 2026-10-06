@@ -88,3 +88,20 @@ export interface ActionDeGrace {
   taille: number;
   createdAt: string;
 }
+
+export interface SujetPriere {
+  id: string;
+  nom: string;
+  createdAt: string;
+}
+
+export interface EquipePriere {
+  id: string;
+  sujetId: string;
+  zone: string;
+  dateDebut: string; // YYYY-MM-DD
+  dateFin: string; // YYYY-MM-DD
+  tempsMis: number; // en minutes
+  nombrePersonnes: number;
+  createdAt: string;
+}

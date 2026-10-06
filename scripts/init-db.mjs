@@ -163,6 +163,31 @@ CREATE TABLE IF NOT EXISTS "Edition" (
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "Edition_pkey" PRIMARY KEY ("id")
 );
+
+CREATE TABLE IF NOT EXISTS "SujetPriere" (
+  "id" TEXT NOT NULL,
+  "nom" TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SujetPriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "EquipePriere" (
+  "id" TEXT NOT NULL,
+  "sujetId" TEXT NOT NULL,
+  "zone" TEXT NOT NULL,
+  "dateDebut" DATE NOT NULL,
+  "dateFin" DATE NOT NULL,
+  "tempsMis" INTEGER NOT NULL,
+  "nombrePersonnes" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "EquipePriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "EquipePriere_sujetId_idx" ON "EquipePriere"("sujetId");
+
+ALTER TABLE "EquipePriere" DROP CONSTRAINT IF EXISTS "EquipePriere_sujetId_fkey";
+ALTER TABLE "EquipePriere" ADD CONSTRAINT "EquipePriere_sujetId_fkey"
+  FOREIGN KEY ("sujetId") REFERENCES "SujetPriere"("id") ON DELETE CASCADE;
 `;
 
 async function main() {

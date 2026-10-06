@@ -8,6 +8,13 @@ type ConfirmState = {
   resolve: (v: boolean) => void;
 };
 
+type PromptState = {
+  message: string;
+  placeholder: string;
+  defaultValue: string;
+  resolve: (v: string | null) => void;
+};
+
 type ToastItem = {
   id: number;
   message: string;
@@ -16,12 +23,21 @@ type ToastItem = {
 
 export function useFeedback() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [promptState, setPromptState] = useState<PromptState | null>(null);
+  const [promptValue, setPromptValue] = useState("");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const confirm = useCallback((message: string, confirmLabel = "Supprimer") => {
     return new Promise<boolean>((resolve) =>
       setConfirmState({ message, confirmLabel, resolve })
     );
+  }, []);
+
+  const prompt = useCallback((message: string, placeholder = "", defaultValue = "") => {
+    return new Promise<string | null>((resolve) => {
+      setPromptValue(defaultValue);
+      setPromptState({ message, placeholder, defaultValue, resolve });
+    });
   }, []);
 
   const toast = useCallback((message: string, type: "success" | "error" = "success") => {
@@ -34,6 +50,14 @@ export function useFeedback() {
     if (!confirmState) return;
     const r = confirmState.resolve;
     setConfirmState(null);
+    r(value);
+  };
+
+  const closePrompt = (value: string | null) => {
+    if (!promptState) return;
+    const r = promptState.resolve;
+    setPromptState(null);
+    setPromptValue("");
     r(value);
   };
 
@@ -54,6 +78,41 @@ export function useFeedback() {
           </div>
         </div>
       )}
+      {promptState && (
+        <div className="modal-backdrop" onClick={() => closePrompt(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <p className="modal-msg">{promptState.message}</p>
+            <input
+              type="text"
+              className="modal-input"
+              placeholder={promptState.placeholder}
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && promptValue.trim()) {
+                  closePrompt(promptValue.trim());
+                } else if (e.key === "Escape") {
+                  closePrompt(null);
+                }
+              }}
+              autoFocus
+            />
+            <div className="form-actions">
+              <button
+                className="btn"
+                type="button"
+                onClick={() => closePrompt(promptValue.trim())}
+                disabled={!promptValue.trim()}
+              >
+                Créer
+              </button>
+              <button className="btn secondary" type="button" onClick={() => closePrompt(null)}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="toast-wrap">
         {toasts.map((t) => (
           <div
@@ -68,5 +127,5 @@ export function useFeedback() {
     </>
   );
 
-  return { confirm, toast, node };
+  return { confirm, prompt, toast, node };
 }

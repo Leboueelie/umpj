@@ -36,6 +36,11 @@ const sections = [
     title: "ACTIONS DE GRÂCE",
     desc: "Upload, téléchargement et impression de fichiers PDF par comité.",
   },
+  {
+    href: "/equipes-priere",
+    title: "ÉQUIPES DE PRIÈRE",
+    desc: "Sujets de prière avec équipes par zone, période et calcul du volume (temps × participants).",
+  },
 ];
 
 export default function Home() {
