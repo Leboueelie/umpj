@@ -307,7 +307,7 @@ export default function EquipesPrierePage() {
                   />
                 </div>
                 <div className="field">
-                  <label>👥 Nombre de personnes</label>
+                  <label>Nombre de personnes</label>
                   <input
                     type="number"
                     min="1"
@@ -325,7 +325,7 @@ export default function EquipesPrierePage() {
               {previewTempsMis > 0 && (
                 <div className="preview">
                   Aperçu : Temps mis = <strong>{fmtDuree(previewTempsMis)}</strong> —
-                  👥 Nombre de personnes = <strong>{previewPers}</strong> — Volume ={" "}
+                  Nombre de personnes = <strong>{previewPers}</strong> — Volume ={" "}
                   <strong>{fmtDuree(previewVolume)}</strong>
                 </div>
               )}
@@ -348,7 +348,7 @@ export default function EquipesPrierePage() {
                         <th>Zone</th>
                         <th>Période</th>
                         <th>Temps mis</th>
-                        <th>👥 Nbre de pers</th>
+                        <th>Nbre de pers</th>
                         <th>Volume</th>
                         <th></th>
                       </tr>
