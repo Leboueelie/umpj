@@ -236,6 +236,7 @@ CREATE TABLE IF NOT EXISTS "SiegePriere" (
   "id" TEXT NOT NULL,
   "nom" TEXT NOT NULL,
   "numeroEdition" INTEGER NOT NULL,
+  "jour" INTEGER NOT NULL DEFAULT 1,
   "orateur" TEXT NOT NULL,
   "date" DATE NOT NULL,
   "heureDebut" TEXT NOT NULL,
@@ -260,6 +261,7 @@ async function main() {
       BEGIN ALTER TABLE "EntreeZone" DROP COLUMN IF EXISTS "heureFin"; EXCEPTION WHEN others THEN END;
       BEGIN ALTER TABLE "Zone" ADD COLUMN "groupe" TEXT NOT NULL DEFAULT 'interieur'; EXCEPTION WHEN duplicate_column THEN END;
       BEGIN ALTER TABLE "ActionDeGrace" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'comite'; EXCEPTION WHEN duplicate_column THEN END;
+      BEGIN ALTER TABLE "SiegePriere" ADD COLUMN "jour" INTEGER NOT NULL DEFAULT 1; EXCEPTION WHEN duplicate_column THEN END;
     END $$;
   `);
 

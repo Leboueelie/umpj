@@ -140,6 +140,7 @@ export interface SiegePriere {
   id: string;
   nom: string;
   numeroEdition: number;
+  jour: number; // n° de jour (1, 2, 3…)
   orateur: string;
   date: string; // YYYY-MM-DD
   heureDebut: string; // HH:MM

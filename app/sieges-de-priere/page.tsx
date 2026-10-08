@@ -14,7 +14,7 @@ const features = [
   {
     href: "/sieges-de-priere/siege-de-priere",
     title: "SIÈGE DE PRIÈRE",
-    desc: "Enregistrement des sessions de siège de prière avec nom, édition, orateur, date, horaires et participants.",
+    desc: "Enregistrement et consultation par édition des sessions de siège de prière : jour, orateur, date, horaires et participants.",
   },
 ];
 
