@@ -105,3 +105,33 @@ export interface EquipePriere {
   nombrePersonnes: number;
   createdAt: string;
 }
+
+export interface NuitPriere {
+  id: string;
+  categorie: string; // "vendredi" | "mardi" | "autre"
+  nomCategorie: string | null; // Nom personnalisé pour "autre"
+  date: string; // YYYY-MM-DD
+  heureDebut: string; // HH:MM
+  heureFin: string; // HH:MM
+  participants: number;
+  tempsMis: number; // en minutes
+  volume: number; // tempsMis * participants
+  createdAt: string;
+}
+
+export interface Jeune {
+  id: string;
+  categorie: string; // "nation" | "debut-mois" | "dirigeants" | "crppf" | "ministere"
+  nomFichier: string;
+  taille: number; // en octets
+  createdAt: string;
+}
+
+export interface Proclamation {
+  id: string;
+  type: string; // "comite" | "region"
+  comite: string;
+  nomFichier: string;
+  taille: number;
+  createdAt: string;
+}

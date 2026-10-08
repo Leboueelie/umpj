@@ -188,6 +188,49 @@ CREATE INDEX IF NOT EXISTS "EquipePriere_sujetId_idx" ON "EquipePriere"("sujetId
 ALTER TABLE "EquipePriere" DROP CONSTRAINT IF EXISTS "EquipePriere_sujetId_fkey";
 ALTER TABLE "EquipePriere" ADD CONSTRAINT "EquipePriere_sujetId_fkey"
   FOREIGN KEY ("sujetId") REFERENCES "SujetPriere"("id") ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS "NuitPriere" (
+  "id" TEXT NOT NULL,
+  "categorie" TEXT NOT NULL,
+  "nomCategorie" TEXT,
+  "date" DATE NOT NULL,
+  "heureDebut" TEXT NOT NULL,
+  "heureFin" TEXT NOT NULL,
+  "participants" INTEGER NOT NULL,
+  "tempsMis" INTEGER NOT NULL,
+  "volume" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "NuitPriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "NuitPriere_date_idx" ON "NuitPriere"("date");
+CREATE INDEX IF NOT EXISTS "NuitPriere_categorie_idx" ON "NuitPriere"("categorie");
+
+CREATE TABLE IF NOT EXISTS "Jeune" (
+  "id" TEXT NOT NULL,
+  "categorie" TEXT NOT NULL,
+  "nomFichier" TEXT NOT NULL,
+  "data" BYTEA NOT NULL,
+  "taille" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Jeune_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "Jeune_categorie_idx" ON "Jeune"("categorie");
+
+CREATE TABLE IF NOT EXISTS "Proclamation" (
+  "id" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'comite',
+  "comite" TEXT NOT NULL,
+  "nomFichier" TEXT NOT NULL,
+  "data" BYTEA NOT NULL,
+  "taille" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Proclamation_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "Proclamation_comite_idx" ON "Proclamation"("comite");
+CREATE INDEX IF NOT EXISTS "Proclamation_type_idx" ON "Proclamation"("type");
 `;
 
 async function main() {

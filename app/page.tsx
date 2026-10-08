@@ -32,14 +32,29 @@ const sections = [
     desc: "Rapports par édition (modèle : 31e édition, Février 2026).",
   },
   {
-    href: "/actions-de-grace",
-    title: "ACTIONS DE GRÂCE",
-    desc: "Upload, téléchargement et impression de fichiers PDF par comité.",
+    href: "/sieges-de-priere",
+    title: "LES SIÈGES DE PRIÈRE",
+    desc: "Gestion des sièges de prière incluant actions de grâce, documents et ressources par comité et région.",
   },
   {
     href: "/equipes-priere",
     title: "ÉQUIPES DE PRIÈRE",
     desc: "Sujets de prière avec équipes par zone, période et calcul du volume (temps × participants).",
+  },
+  {
+    href: "/nuits-priere",
+    title: "NUITS DE PRIÈRE",
+    desc: "Gestion des nuits de prière (Vendredi, Mardi, Autre) avec calcul du temps et volume par participants.",
+  },
+  {
+    href: "/jeune",
+    title: "JEÛNE",
+    desc: "Gestion des documents PDF par catégorie de jeûne (Nation, Début de mois, Dirigeants, CRPPF, Ministère).",
+  },
+  {
+    href: "/proclamation",
+    title: "PROCLAMATION",
+    desc: "Gestion des proclamations par comité et région avec upload, téléchargement et impression de PDF.",
   },
 ];
 
