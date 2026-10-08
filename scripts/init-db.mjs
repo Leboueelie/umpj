@@ -231,6 +231,22 @@ CREATE TABLE IF NOT EXISTS "Proclamation" (
 
 CREATE INDEX IF NOT EXISTS "Proclamation_comite_idx" ON "Proclamation"("comite");
 CREATE INDEX IF NOT EXISTS "Proclamation_type_idx" ON "Proclamation"("type");
+
+CREATE TABLE IF NOT EXISTS "SiegePriere" (
+  "id" TEXT NOT NULL,
+  "nom" TEXT NOT NULL,
+  "numeroEdition" INTEGER NOT NULL,
+  "orateur" TEXT NOT NULL,
+  "date" DATE NOT NULL,
+  "heureDebut" TEXT NOT NULL,
+  "heureFin" TEXT NOT NULL,
+  "participants" INTEGER NOT NULL,
+  "tempsMis" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "SiegePriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "SiegePriere_date_idx" ON "SiegePriere"("date");
 `;
 
 async function main() {

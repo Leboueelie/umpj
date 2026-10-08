@@ -11,7 +11,11 @@ const features = [
     title: "ACTIONS DE GRÂCE",
     desc: "Upload, téléchargement et impression de fichiers PDF par comité et région.",
   },
-  // Futures fonctionnalités seront ajoutées ici
+  {
+    href: "/sieges-de-priere/siege-de-priere",
+    title: "SIÈGE DE PRIÈRE",
+    desc: "Enregistrement des sessions de siège de prière avec nom, édition, orateur, date, horaires et participants.",
+  },
 ];
 
 export default function SiegesDePrierePage() {

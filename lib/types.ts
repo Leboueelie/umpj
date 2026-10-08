@@ -135,3 +135,16 @@ export interface Proclamation {
   taille: number;
   createdAt: string;
 }
+
+export interface SiegePriere {
+  id: string;
+  nom: string;
+  numeroEdition: number;
+  orateur: string;
+  date: string; // YYYY-MM-DD
+  heureDebut: string; // HH:MM
+  heureFin: string; // HH:MM
+  participants: number;
+  tempsMis: number; // en minutes
+  createdAt: string;
+}
