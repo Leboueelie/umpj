@@ -1,32 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fmtDuree, normalizeDate, normalizeHeure } from "@/lib/calc";
+import {
+  fmtDuree,
+  formatDateInput,
+  formatHeureInput,
+  normalizeDate,
+  normalizeHeure,
+  todayDisplay,
+} from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
-
-function formatDateInput(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  const parts: string[] = [];
-  if (d.length > 0) parts.push(d.slice(0, 2));
-  if (d.length >= 3) parts.push(d.slice(2, 4));
-  if (d.length >= 5) parts.push(d.slice(4, 8));
-  return parts.join("/");
-}
-
-function formatHeureInput(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 4);
-  if (d.length <= 2) return d;
-  return d.slice(0, 2) + ":" + d.slice(2);
-}
-
-function isoToDisplay(iso: string): string {
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
-}
-
-function todayDisplay(): string {
-  return isoToDisplay(new Date().toISOString().slice(0, 10));
-}
 
 type Notify = (message: string, type?: "success" | "error") => void;
 

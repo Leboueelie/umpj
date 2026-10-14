@@ -149,3 +149,31 @@ export function completCahier(lignes: Ligne[]): number {
   }
   return total;
 }
+
+// Saisie JJ/MM/AAAA assistée : insère les "/"
+export function formatDateInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  const parts: string[] = [];
+  if (d.length > 0) parts.push(d.slice(0, 2));
+  if (d.length >= 3) parts.push(d.slice(2, 4));
+  if (d.length >= 5) parts.push(d.slice(4, 8));
+  return parts.join("/");
+}
+
+// Saisie HH:MM assistée : insère ":"
+export function formatHeureInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  return d.slice(0, 2) + ":" + d.slice(2);
+}
+
+// "YYYY-MM-DD" -> "JJ/MM/AAAA" pour l'affichage dans un input
+export function isoToDisplay(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+// Date du jour au format d'affichage "JJ/MM/AAAA"
+export function todayDisplay(): string {
+  return isoToDisplay(new Date().toISOString().slice(0, 10));
+}

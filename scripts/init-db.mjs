@@ -206,6 +206,29 @@ CREATE TABLE IF NOT EXISTS "NuitPriere" (
 CREATE INDEX IF NOT EXISTS "NuitPriere_date_idx" ON "NuitPriere"("date");
 CREATE INDEX IF NOT EXISTS "NuitPriere_categorie_idx" ON "NuitPriere"("categorie");
 
+CREATE TABLE IF NOT EXISTS "CroisadeJeunePriere" (
+  "id" TEXT NOT NULL,
+  "date" DATE NOT NULL,
+  "heureDebut" TEXT NOT NULL,
+  "heureFin" TEXT NOT NULL,
+  "orateur" TEXT NOT NULL,
+  "coordinateur" TEXT NOT NULL,
+  "frereSoeur" INTEGER NOT NULL DEFAULT 0,
+  "accueil" INTEGER NOT NULL DEFAULT 0,
+  "semeurs" INTEGER NOT NULL DEFAULT 0,
+  "secretariat1" INTEGER NOT NULL DEFAULT 0,
+  "secretariat2" INTEGER NOT NULL DEFAULT 0,
+  "sono" INTEGER NOT NULL DEFAULT 0,
+  "ames" INTEGER NOT NULL DEFAULT 0,
+  "rtvc" INTEGER NOT NULL DEFAULT 0,
+  "effectif" INTEGER NOT NULL DEFAULT 0,
+  "tempsMis" INTEGER NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "CroisadeJeunePriere_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "CroisadeJeunePriere_date_idx" ON "CroisadeJeunePriere"("date");
+
 CREATE TABLE IF NOT EXISTS "Jeune" (
   "id" TEXT NOT NULL,
   "categorie" TEXT NOT NULL,

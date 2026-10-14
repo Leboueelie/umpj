@@ -119,6 +119,26 @@ export interface NuitPriere {
   createdAt: string;
 }
 
+export interface CroisadeJeunePriere {
+  id: string;
+  date: string; // YYYY-MM-DD
+  heureDebut: string; // HH:MM
+  heureFin: string; // HH:MM
+  orateur: string;
+  coordinateur: string;
+  frereSoeur: number;
+  accueil: number;
+  semeurs: number;
+  secretariat1: number;
+  secretariat2: number;
+  sono: number;
+  ames: number;
+  rtvc: number;
+  effectif: number; // somme des rôles (calculé serveur)
+  tempsMis: number; // en minutes
+  createdAt: string;
+}
+
 export interface Jeune {
   id: string;
   categorie: string; // "nation" | "debut-mois" | "dirigeants" | "crppf" | "ministere"
