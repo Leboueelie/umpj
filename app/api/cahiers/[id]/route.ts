@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, { params }: Params) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const nom = (body.nom ?? "").toString().trim();
@@ -19,6 +23,9 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await params;
   const countRes = await pool.query(`SELECT count(*)::int AS n FROM "Cahier"`);
   if (countRes.rows[0].n <= 1) {

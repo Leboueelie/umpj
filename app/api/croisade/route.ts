@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { normalizeDate, normalizeHeure, tempsMisMin } from "@/lib/calc";
 import type { CroisadeJeunePriere } from "@/lib/types";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const res = await pool.query<CroisadeJeunePriere>(
     `SELECT * FROM "CroisadeJeunePriere" ORDER BY "date" DESC, "heureDebut"`,
     []
@@ -35,6 +39,9 @@ const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json();
   const { date, heureDebut, heureFin, orateur, coordinateur } = body;
 

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const zoneId = searchParams.get("zoneId");
   let query = `SELECT c.*, z."nom" AS "zoneNom", z."groupe" AS "zoneGroupe"
@@ -18,6 +22,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const zoneId = (body.zoneId ?? "").toString();
   const lieu = (body.lieu ?? "").toString().trim();

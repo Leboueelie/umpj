@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { normalizeDate, normalizeHeure, tempsMisMin } from "@/lib/calc";
 import type { SiegePriere } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const editionParam = req.nextUrl.searchParams.get("edition");
 
   if (editionParam !== null) {
@@ -31,6 +35,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json();
   const { nom, numeroEdition, jour, orateur, date, heureDebut, heureFin, participants } = body;
 

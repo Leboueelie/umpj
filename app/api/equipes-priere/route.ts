@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import type { EquipePriere } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const sujetId = searchParams.get("sujetId");
 
@@ -25,6 +29,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json();
   const { sujetId, zone, dateDebut, dateFin, tempsMis, nombrePersonnes } = body;
 
@@ -52,6 +59,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 

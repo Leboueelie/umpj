@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const c = await pool.query(
     `SELECT id, nom, "createdAt"::text AS "createdAt" FROM "Cahier" ORDER BY "createdAt" ASC`
   );
@@ -13,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const nom = (body.nom ?? "").toString().trim();
   const countRes = await pool.query(`SELECT count(*)::int AS n FROM "Cahier"`);

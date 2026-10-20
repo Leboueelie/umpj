@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const r = await pool.query(`SELECT * FROM "Zone" ORDER BY "ordre" ASC, "nom" ASC`);
   return NextResponse.json(r.rows);
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const nom = (body.nom ?? "").toString().trim();
   if (!nom) return NextResponse.json({ error: "Nom requis." }, { status: 400 });

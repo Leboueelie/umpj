@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const fromMois = (body.fromMois ?? "").toString().trim();
   const toMois = (body.toMois ?? "").toString().trim();

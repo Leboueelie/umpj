@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { parseDureeMinutes } from "@/lib/calc";
 
 export async function GET(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const mois = searchParams.get("mois");
   if (!mois) return NextResponse.json({ error: "mois requis" }, { status: 400 });
@@ -18,6 +22,9 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const mois = searchParams.get("mois");
   const zoneId = searchParams.get("zoneId");
@@ -39,6 +46,9 @@ export async function DELETE(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const mois = (body.mois ?? "").toString().trim();
   const entrees = Array.isArray(body.entrees) ? body.entrees : [];

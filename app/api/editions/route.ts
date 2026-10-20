@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const r = await pool.query(
     `SELECT "id","numero","reference","dateDebut","dateFin","libellePeriode"
      FROM "Edition" ORDER BY "dateDebut" DESC, "numero" DESC`
@@ -75,6 +79,9 @@ function readBody(b: EditionBody) {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const b = await req.json().catch(() => ({} as EditionBody));
   if (!b.numero || !b.dateDebut || !b.dateFin)
     return NextResponse.json({ error: "numero, dateDebut et dateFin sont requis." }, { status: 400 });

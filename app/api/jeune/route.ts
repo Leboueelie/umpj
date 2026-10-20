@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import type { Jeune } from "@/lib/types";
 
@@ -6,6 +7,9 @@ const VALID_CATEGORIES = ["nation", "debut-mois", "dirigeants", "crppf", "minist
 const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
 
 export async function GET(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const categorie = searchParams.get("categorie");
 
@@ -24,6 +28,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const categorie = (formData.get("categorie") ?? "").toString().trim();

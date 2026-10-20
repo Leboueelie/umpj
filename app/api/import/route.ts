@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { tempsMisMin, normalizeHeure, normalizeDate } from "@/lib/calc";
 import type { ImportedCahier } from "@/lib/excel";
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const cahiers = (body.cahiers ?? []) as ImportedCahier[];
   if (!Array.isArray(cahiers) || cahiers.length === 0) {

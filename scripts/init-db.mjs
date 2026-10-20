@@ -1,18 +1,77 @@
 import fs from "fs";
+import readline from "readline";
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
 
-for (const l of fs.readFileSync(".env", "utf8").split("\n")) {
-  const m = l.match(/^([A-Z_]+)=(.*)$/);
-  if (m) process.env[m[1]] = m[2].replace(/^"|"$/g, "");
+// Priorité des variables d'environnement : identique à scripts/create-user.mjs.
+// Une valeur déjà présente dans process.env n'est JAMAIS remplacée par .env.
+if (fs.existsSync(".env")) {
+  for (const l of fs.readFileSync(".env", "utf8").split("\n")) {
+    const m = l.match(/^([A-Z_]+)=(.*)$/);
+    if (m && !process.env[m[1]]) {
+      process.env[m[1]] = m[2].trim().replace(/^"|"$/g, "");
+    }
+  }
 }
 
-if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL manquant dans .env");
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error("DATABASE_URL manquant (.env ou environnement).");
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, family: 4 });
+// Affichage de la cible AVANT toute connexion, identifiants masqués.
+function decrireCible(url) {
+  try {
+    const u = new URL(url);
+    const userinfo = u.username || u.password ? "****@" : "";
+    const base = u.pathname.replace(/^\//, "") || "(par défaut)";
+    const locaux = ["localhost", "127.0.0.1", "::1", "[::1]"];
+    return {
+      texte: `${userinfo}${u.hostname}/${base}`,
+      distante: !locaux.includes(u.hostname),
+    };
+  } catch {
+    return { texte: "(URL illisible)", distante: true };
+  }
+}
+
+const cible = decrireCible(DATABASE_URL);
+console.log(`Base cible : ${cible.texte}`);
+if (cible.distante) {
+  console.log(
+    "ATTENTION : cible distante détectée. Vérifiez qu'il ne s'agit pas de la base de production."
+  );
+}
+
+// Confirmation obligatoire avant toute connexion ou écriture (schéma + seeds).
+async function demanderConfirmation() {
+  const invite = `Confirmer schema + seeds sur ${cible.texte} ? (oui/non) : `;
+  if (!process.stdin.isTTY) {
+    const brut = await new Promise((resolve) => {
+      let d = "";
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (c) => (d += c));
+      process.stdin.on("end", () => resolve(d));
+    });
+    return brut.split(/\r?\n/)[0] ?? "";
+  }
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const reponse = await new Promise((resolve) => rl.question(invite, resolve));
+  rl.close();
+  return reponse;
+}
+
+const reponse = (await demanderConfirmation()).trim().toLowerCase();
+if (reponse !== "oui") {
+  console.log("Annulé. Aucune connexion ni écriture.");
+  process.exit(0);
+}
+
+const pool = new Pool({ connectionString: DATABASE_URL, family: 4 });
 
 const ZONES = [
   "ABATA-AKOUEDO",
@@ -271,6 +330,38 @@ CREATE TABLE IF NOT EXISTS "SiegePriere" (
 );
 
 CREATE INDEX IF NOT EXISTS "SiegePriere_date_idx" ON "SiegePriere"("date");
+
+CREATE TABLE IF NOT EXISTS "Utilisateur" (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'LECTEUR',
+  actif BOOLEAN NOT NULL DEFAULT true,
+  sessions_invalides_apres TIMESTAMPTZ NOT NULL DEFAULT TIMESTAMP 'epoch',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "Utilisateur_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "Utilisateur_email_key" UNIQUE ("email"),
+  CONSTRAINT "Utilisateur_role_check" CHECK (role IN ('ADMIN','LECTEUR'))
+);
+
+CREATE TABLE IF NOT EXISTS "TentativeConnexion" (
+  cle TEXT NOT NULL,
+  tentatives INTEGER NOT NULL DEFAULT 0,
+  premiere_tentative TIMESTAMPTZ NOT NULL DEFAULT now(),
+  derniere_tentative TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "TentativeConnexion_pkey" PRIMARY KEY ("cle")
+);
+
+CREATE TABLE IF NOT EXISTS "JournalAdmin" (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  quand TIMESTAMPTZ NOT NULL DEFAULT now(),
+  acteur TEXT NOT NULL,
+  action TEXT NOT NULL,
+  cible TEXT,
+  detail JSONB NOT NULL DEFAULT '{}',
+  CONSTRAINT "JournalAdmin_pkey" PRIMARY KEY ("id")
+);
 `;
 
 async function main() {

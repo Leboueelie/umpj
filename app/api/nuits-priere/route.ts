@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { tempsMisMin, normalizeDate, normalizeHeure } from "@/lib/calc";
 import type { NuitPriere } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const categorie = searchParams.get("categorie");
   const dateDebut = searchParams.get("dateDebut");
@@ -40,6 +44,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json();
   const { categorie, nomCategorie, date, heureDebut, heureFin, participants } = body;
 
@@ -118,6 +125,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 

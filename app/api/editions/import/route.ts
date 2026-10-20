@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { parseEditionFile } from "@/lib/excel";
 import { parseEditionPdfBuffer } from "@/lib/edition-import-pdf";
@@ -6,6 +7,9 @@ import { parseEditionPdfBuffer } from "@/lib/edition-import-pdf";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {

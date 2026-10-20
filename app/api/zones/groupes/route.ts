@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const r = await pool.query(
     `SELECT z."groupe" AS g,
             SUM(CASE WHEN e."participants" >= 1 THEN e."participants" ELSE 0 END) AS "totP",

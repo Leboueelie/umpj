@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import type { Proclamation } from "@/lib/types";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
 
 export async function GET(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { searchParams } = new URL(req.url);
   const comite = searchParams.get("comite");
   const type = searchParams.get("type");
@@ -31,6 +35,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const comite = (formData.get("comite") ?? "").toString().trim();

@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { buildEditionPdfBuffer } from "@/lib/edition-pdf";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await ctx.params;
   const r = await pool.query(`SELECT * FROM "Edition" WHERE "id" = $1`, [id]);
   if (!r.rowCount) return NextResponse.json({ error: "Edition introuvable." }, { status: 404 });

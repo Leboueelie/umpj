@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await ctx.params;
   const r = await pool.query(`SELECT * FROM "Edition" WHERE "id" = $1`, [id]);
   if (!r.rowCount) return NextResponse.json({ error: "Edition introuvable." }, { status: 404 });
@@ -41,6 +45,9 @@ function arr(v: any): any[] {
 }
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await ctx.params;
   const b = await req.json().catch(() => ({} as EditionBody));
   const f = {
@@ -99,6 +106,9 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await ctx.params;
   const r = await pool.query(`DELETE FROM "Edition" WHERE "id" = $1`, [id]);
   if (!r.rowCount) return NextResponse.json({ error: "Edition introuvable." }, { status: 404 });

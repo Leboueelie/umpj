@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const nom = (body.nom ?? "").toString().trim();
@@ -22,6 +26,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await params;
   await pool.query(`DELETE FROM "Zone" WHERE "id"=$1`, [id]);
   return NextResponse.json({ ok: true });

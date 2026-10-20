@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 export async function GET() {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const r = await pool.query(`SELECT "cle","valeur" FROM "ConfigFiche"`);
   const map: Record<string, number> = {};
   for (const row of r.rows) map[row.cle] = Number(row.valeur) || 0;
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const updates: [string, number][] = [];
   if (typeof body.chambresAbidjan === "number") updates.push(["chambresAbidjan", body.chambresAbidjan]);

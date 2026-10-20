@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { tempsMisMin } from "@/lib/calc";
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const b = await req.json().catch(() => ({}));
   const cahierId = (b.cahierId ?? "").toString();
   const date = (b.date ?? "").toString();

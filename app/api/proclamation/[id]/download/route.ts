@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const { id } = await params;
   const r = await pool.query(
     `SELECT "nomFichier", data FROM "Proclamation" WHERE id = $1`,

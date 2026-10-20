@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { parseDureeMinutes } from "@/lib/calc";
 
 export async function POST(req: Request) {
+  const acces = await requireAdmin();
+  if (acces instanceof NextResponse) return acces;
+
   const body = await req.json().catch(() => ({}));
   const mois = (body.mois ?? "").toString().trim();
   const lignes = Array.isArray(body.lignes) ? body.lignes : [];
