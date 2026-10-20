@@ -117,7 +117,7 @@ export async function proxy(request: NextRequest) {
     const r = await pool.query(
       `SELECT role FROM "Utilisateur"
        WHERE id = $1 AND actif
-         AND $2::int >= FLOOR(EXTRACT(EPOCH FROM sessions_invalides_apres))`,
+         AND $2::bigint >= (EXTRACT(EPOCH FROM sessions_invalides_apres) * 1000)::bigint`,
       [session.sub, session.iat]
     );
     if (r.rowCount === 1) compte = { role: r.rows[0].role };

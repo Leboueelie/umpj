@@ -1,7 +1,9 @@
 export interface SessionPayload {
   sub: string;
   role: "ADMIN" | "LECTEUR";
+  /** Émission en millisecondes Unix (précision de la révocation). */
   iat: number;
+  /** Expiration en secondes Unix. */
   exp: number;
 }
 

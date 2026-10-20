@@ -131,9 +131,10 @@ export async function POST(req: Request) {
 
     await reinitialiser([cleEmail, ...(cleIp ? [cleIp] : [])]);
 
-    const maintenant = Math.floor(Date.now() / 1000);
+    const maintenantSec = Math.floor(Date.now() / 1000);
     const jeton = signSession(
-      { sub: u.id, role: u.role, iat: maintenant, exp: maintenant + SESSION_TTL_S },
+      // iat en millisecondes (précision de la révocation), exp en secondes.
+      { sub: u.id, role: u.role, iat: Date.now(), exp: maintenantSec + SESSION_TTL_S },
       process.env.AUTH_SECRET ?? ""
     );
 

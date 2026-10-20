@@ -54,7 +54,9 @@ export async function getUtilisateurActuel(): Promise<UtilisateurActuel | null> 
   if (r.rowCount === 0) return null;
   const u = r.rows[0];
   if (!u.actif) return null;
-  if (session.iat < Math.floor(new Date(u.sessions_invalides_apres).getTime() / 1000)) {
+  // iat est en millisecondes : comparaison à la milliseconde près, une
+  // session émise AVANT la révocation est rejetée même dans la même seconde.
+  if (session.iat < new Date(u.sessions_invalides_apres).getTime()) {
     return null;
   }
   return { id: u.id, email: u.email, role: u.role as Role };

@@ -31,23 +31,27 @@ test("verifyPassword : hash malformé refusé", () => {
   assert.equal(verifyPassword(" MotDePasse123", "scrypt$1$2$3$bad"), false);
 });
 
-test("signSession / verifySession : roundtrip", () => {
-  const now = 1700000000;
-  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now, exp: now + 3600 }, SECRET);
-  const p = verifySession(token, SECRET, now + 10);
+test("signSession / verifySession : roundtrip (iat en ms, exp en s)", () => {
+  const nowSec = 1700000000;
+  const token = signSession(
+    { sub: "u-1", role: "ADMIN", iat: nowSec * 1000 + 123, exp: nowSec + 3600 },
+    SECRET
+  );
+  const p = verifySession(token, SECRET, nowSec + 10);
   assert.equal(p.sub, "u-1");
   assert.equal(p.role, "ADMIN");
+  assert.equal(p.iat, nowSec * 1000 + 123);
 });
 
 test("verifySession : jeton expiré refusé", () => {
   const now = 1700000000;
-  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now, exp: now + 60 }, SECRET);
+  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now * 1000, exp: now + 60 }, SECRET);
   assert.equal(verifySession(token, SECRET, now + 61), null);
 });
 
 test("verifySession : signature falsifiée refusée", () => {
   const now = 1700000000;
-  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now, exp: now + 3600 }, SECRET);
+  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now * 1000, exp: now + 3600 }, SECRET);
   const parts = token.split(".");
   const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
   payload.role = "LECTEUR"; // tentative d'élévation de privilèges
@@ -57,7 +61,7 @@ test("verifySession : signature falsifiée refusée", () => {
 
 test("verifySession : secret différent refusé", () => {
   const now = 1700000000;
-  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now, exp: now + 3600 }, SECRET);
+  const token = signSession({ sub: "u-1", role: "ADMIN", iat: now * 1000, exp: now + 3600 }, SECRET);
   assert.equal(verifySession(token, "autre-secret-suffisamment-long!", now), null);
 });
 
