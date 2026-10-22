@@ -56,6 +56,11 @@ const sections = [
     title: "PROCLAMATION",
     desc: "Gestion des proclamations par comité et région avec upload, téléchargement et impression de PDF.",
   },
+  {
+    href: "/banque",
+    title: "Banque des accomplissements",
+    desc: "Consultation par période des accomplissements : maisons de prière, zones et éditions.",
+  },
 ];
 
 export default function Home() {

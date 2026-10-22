@@ -295,3 +295,44 @@ tr.manquant input { border-color: #f0b27a; }
   .grid-2 { grid-template-columns: 1fr; }
 }
 
+
+/* Banque des accomplissements — sections, indicateurs et anomalies (B4) */
+.banque-section-titre {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.banque-section-titre .cnt { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.banque-indics {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;
+}
+.banque-indic {
+  border: 1px solid var(--border); border-radius: 8px; background: #f8fafc;
+  padding: 10px 12px; min-width: 0;
+}
+.banque-indic .v { display: block; font-weight: 700; color: var(--navy); font-size: 1.05rem; overflow-wrap: anywhere; }
+.banque-indic .l { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.banque-anom-cats { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.banque-anom-cat h4 { margin: 0 0 3px; font-size: 0.92rem; color: var(--navy); }
+.banque-anom-aide { margin: 0 0 8px; font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+.banque-anom-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.banque-anom-liste li {
+  font-size: 0.85rem; line-height: 1.45; padding: 7px 9px; background: #f8fafc;
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 4px; overflow-wrap: anywhere;
+}
+.banque-anom-b .banque-anom-liste li { border-left-color: var(--navy); }
+.banque-anom-c .banque-anom-liste li { border-left-color: var(--danger); }
+.banque-anom-pied {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 8px; font-size: 0.8rem; color: var(--muted);
+}
+/* Focus clavier visible (contrôle B4 §10) */
+input:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent-dark); outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .banque-indics { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .banque-anom-pied .btn { width: 100%; }
+}
+/* Barres de résumé Banque : textes longs autorisés à revenir à la ligne */
+.banque-volumes span { white-space: normal; overflow-wrap: anywhere; }

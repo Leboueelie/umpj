@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "setup-db": "node scripts/init-db.mjs"
+    "setup-db": "node scripts/init-db.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "next": "^16.3.2",
