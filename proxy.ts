@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { pool } from "@/lib/db";
-import { verifySession } from "@/lib/auth-core.mjs";
+import { verifySession, gardeActive, LONGUEUR_SECRET_MIN } from "@/lib/auth-core.mjs";
 import { SESSION_COOKIE } from "@/lib/auth";
 
 // Garde globale Next.js 16 (convention proxy.ts — middleware est déprécié).
@@ -12,17 +12,14 @@ import { SESSION_COOKIE } from "@/lib/auth";
 
 const METHODES_MUTATION = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-function gardeActive(): boolean {
-  return process.env.AUTH_GARDE !== "off";
-}
-
 function secret(): string | null {
   const s = process.env.AUTH_SECRET;
-  return s && s.length >= 16 ? s : null;
+  return s && s.length >= LONGUEUR_SECRET_MIN ? s : null;
 }
 
+// Tout refus API porte les cinq en-têtes de sécurité — statut et corps JSON inchangés.
 function refusApi(message: string, status: number): NextResponse {
-  return NextResponse.json({ error: message }, { status });
+  return enTetesSecurite(NextResponse.json({ error: message }, { status }));
 }
 
 // Réponse générique quand la base est indisponible : ni données privées,
@@ -60,6 +57,19 @@ function enTetesSecurite(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-Frame-Options", "DENY");
+  // HTTPS uniquement (ignoré par les navigateurs sur http local) ; pas de
+  // directive preload sans engagement explicite du responsable.
+  response.headers.set(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains"
+  );
+  // L'application n'utilise aucun de ces powers : gel explicite.
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  );
+  // NB : une CSP stricte (nonce) est documentée dans AUTH.md §10 comme
+  // mission dédiée — elle exige une validation visuelle des ressources.
   return response;
 }
 
@@ -81,6 +91,13 @@ function csrfRefuse(request: NextRequest): boolean {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // Page publique de connexion : porte d'entrée du site — elle reçoit les
+  // cinq en-têtes de sécurité sans session exigée et sans redirection
+  // (retour immédiat : aucune boucle possible), avant tout autre contrôle.
+  if (pathname === "/login") {
+    return enTetesSecurite(NextResponse.next());
+  }
 
   if (!gardeActive()) {
     return enTetesSecurite(NextResponse.next());
@@ -168,13 +185,16 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Exceptions précises au matcher :
-  // - "login$" placé juste après le "/" initial n'exclut QUE la page /login
-  //   exacte (testé : /autre/login et /admin/login restent protégés) ;
+  // - la page /login PASSE désormais par le proxy : la branche publique en
+  //   tête de proxy() lui applique les cinq en-têtes de sécurité (aucune
+  //   session exigée, aucune redirection, aucune boucle) ;
+  // - /autre/login et /admin/login ne sont pas des exceptions : ils suivent
+  //   les contrôles normaux (testé au matcher : ils restent couverts) ;
   // - les assets statiques (extensions d'images/polices ; /logo.png et
   //   /icon.png sont couverts par la règle d'extensions).
   // /api/auth/* reste dans le matcher (contrôle CSRF) mais n'exige pas de
   // session dans le corps du proxy.
   matcher: [
-    "/((?!login$|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|svg|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|svg|ico|woff2?)$).*)",
   ],
 };
