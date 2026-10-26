@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { Edition } from "@/lib/types";
 
 export default function EditionEdit() {
@@ -111,14 +112,18 @@ export default function EditionEdit() {
 
   return (
     <main className="wrap">
-      <Link href={isNew ? "/editions" : `/editions/${id}`} className="back-link">← Annuler</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>{isNew ? "Nouvelle édition" : `Édition ${numero}e`}</h1>
-          <div className="sub">Editions de l'UMPJ</div>
-        </div>
-      </header>
+      <PageHeader
+        titre={isNew ? "Nouvelle édition" : `Édition ${numero}e`}
+        sousTitre="Éditions de l'UMPJ"
+        actions={
+          <Link
+            href={isNew ? "/editions" : `/editions/${id}`}
+            className="link-btn"
+          >
+            &larr; Annuler
+          </Link>
+        }
+      />
 
       <div className="card">
         <h3 className="ed-section">Identification</h3>

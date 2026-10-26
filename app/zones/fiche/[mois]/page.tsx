@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { useParams, useRouter } from "next/navigation";
 import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
@@ -241,14 +242,15 @@ export default function FicheMoisDetail() {
 
   return (
     <main className="wrap">
-      <Link href="/zones/fiches" className="back-link">← Toutes les fiches</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Fiche complète — {moisLabel(mois)}</h1>
-          <div className="sub">Par zone / région spirituelle</div>
-        </div>
-      </header>
+      <PageHeader
+        titre={`Fiche complète — ${moisLabel(mois)}`}
+        sousTitre="Par zone / région spirituelle"
+        actions={
+          <Link href="/zones/fiches" className="link-btn">
+            &larr; Toutes les fiches
+          </Link>
+        }
+      />
 
       <div className="card">
         <div className="month-nav">

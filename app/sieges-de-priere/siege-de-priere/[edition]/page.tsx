@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { useParams, useRouter } from "next/navigation";
 import type { SiegePriere } from "@/lib/types";
 import { fmtDuree, fmtDate } from "@/lib/calc";
@@ -104,19 +105,15 @@ export default function SiegeEditionPage() {
 
   return (
     <main className="wrap">
-      <Link href="/sieges-de-priere/siege-de-priere" className="back-link">
-        ← Toutes les éditions
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <div className="titles">
-          <h1>Siège de Prière — Édition {edition}</h1>
-          <div className="sub">
-            {sieges.length} session(s) · {nbJours} jour(s) · {totalParticipants}{" "}
-            participants · {fmtDuree(totalTempsMis)}
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        titre={`Siège de Prière — Édition ${edition}`}
+        sousTitre={`${sieges.length} session(s) · ${nbJours} jour(s) · ${totalParticipants} participants · ${fmtDuree(totalTempsMis)}`}
+        actions={
+          <Link href="/sieges-de-priere/siege-de-priere" className="link-btn">
+            &larr; Toutes les éditions
+          </Link>
+        }
+      />
 
       <div className="month-nav">
         <button

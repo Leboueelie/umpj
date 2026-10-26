@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { moisLabel } from "@/lib/mois";
 import { fmtDuree } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
@@ -92,14 +93,7 @@ export default function ListeFiches() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">← Accueil</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Fiches mensuelles</h1>
-          <div className="sub">Par zone / région spirituelle</div>
-        </div>
-      </header>
+      <PageHeader titre="Fiches mensuelles" sousTitre="Par zone / région spirituelle" />
 
       <div className="card">
         {moisList.length === 0 ? (

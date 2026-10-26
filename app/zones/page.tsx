@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { parseImportZonesFile } from "@/lib/excel";
@@ -219,14 +220,10 @@ export default function Zones() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">← Accueil</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Fiche mensuelle des heures de prière</h1>
-          <div className="sub">Par zone / région spirituelle</div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Fiche mensuelle des heures de prière"
+        sousTitre="Par zone / région spirituelle"
+      />
 
       <div className="card">
         <div className="month-nav">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { CroisadeJeunePriere } from "@/lib/types";
 import {
   fmtDuree,
@@ -193,16 +194,15 @@ export default function CroisadePage() {
 
   return (
     <main className="wrap">
-      <Link href="/nuits-priere" className="back-link">
-        ← Nuits de Prière
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <div className="titles">
-          <h1>Croisade de Jeûne et Prière pour le Ministère</h1>
-          <div className="sub">{liste.length} enregistrement(s)</div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Croisade de Jeûne et Prière pour le Ministère"
+        sousTitre={`${liste.length} enregistrement(s)`}
+        actions={
+          <Link href="/nuits-priere" className="link-btn">
+            &larr; Nuits de Prière
+          </Link>
+        }
+      />
 
       {error && <div className="err">{error}</div>}
 

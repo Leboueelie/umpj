@@ -3,28 +3,16 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { NuitPriere } from "@/lib/types";
-import { fmtDuree, fmtDate, normalizeDate, normalizeHeure } from "@/lib/calc";
+import {
+  fmtDuree,
+  fmtDate,
+  formatDateInput,
+  formatHeureInput,
+  normalizeDate,
+  normalizeHeure,
+  todayDisplay,
+} from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
-
-function formatDateInput(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  const parts: string[] = [];
-  if (d.length > 0) parts.push(d.slice(0, 2));
-  if (d.length >= 3) parts.push(d.slice(2, 4));
-  if (d.length >= 5) parts.push(d.slice(4, 8));
-  return parts.join("/");
-}
-
-function formatHeureInput(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 4);
-  if (d.length <= 2) return d;
-  return d.slice(0, 2) + ":" + d.slice(2);
-}
-
-function isoToDisplay(iso: string): string {
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
-}
 
 async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -44,7 +32,7 @@ export default function NuitsPrierePage() {
   const [form, setForm] = useState({
     categorie: "vendredi" as "vendredi" | "mardi" | "autre",
     nomCategorie: "",
-    date: isoToDisplay(new Date().toISOString().slice(0, 10)),
+    date: todayDisplay(),
     heureDebut: "",
     heureFin: "",
     participants: "1",
@@ -116,7 +104,7 @@ export default function NuitsPrierePage() {
       setForm({
         categorie: "vendredi",
         nomCategorie: "",
-        date: isoToDisplay(new Date().toISOString().slice(0, 10)),
+        date: todayDisplay(),
         heureDebut: "",
         heureFin: "",
         participants: "1",
@@ -183,8 +171,8 @@ export default function NuitsPrierePage() {
 
   return (
     <div className="wrap">
-      <Link href="/" className="back-link">
-        ← Accueil
+      <Link href="/nuits-priere" className="back-link">
+        ← Nuits de Prière
       </Link>
       <header className="app-header">
         <img src="/logo.png" alt="Logo" className="logo" />

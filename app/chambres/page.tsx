@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { Zone, ChambreDePriere } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
 
@@ -155,18 +156,14 @@ export default function ChambresPage() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">← Accueil</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Liste des Chambres de Prière</h1>
-          <div className="sub">
-            {zoneActive
-              ? `${zoneActive.nom} — ${chambresZone.length} chambre(s)`
-              : `${zones.length} zones · ${chambres.length} chambres au total`}
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Liste des Chambres de Prière"
+        sousTitre={
+          zoneActive
+            ? `${zoneActive.nom} — ${chambresZone.length} chambre(s)`
+            : `${zones.length} zones · ${chambres.length} chambres au total`
+        }
+      />
 
       {error && <div className="err">{error}</div>}
 

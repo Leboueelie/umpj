@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
@@ -347,14 +348,10 @@ export default function App() {
 
   return (
     <div className="wrap">
-      <Link href="/" className="back-link">← Accueil</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <div className="titles">
-          <h1>MAISON DE PRIERE D&apos;ABIDJAN POUR TOUTES LES NATIONS</h1>
-          <div className="sub">Application partagée — données enregistrées sur la base commune</div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Maisons de prière"
+        sousTitre="Cahier de temps de prière — données partagées"
+      />
 
       <div className="card">
         <div className="filters">

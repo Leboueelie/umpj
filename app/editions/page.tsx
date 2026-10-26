@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { moisLabel } from "@/lib/mois";
 
 interface EditionResume {
@@ -51,14 +52,7 @@ export default function EditionsList() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">← Accueil</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>EDITIONS DE L'UMPJ</h1>
-          <div className="sub">Rapports par édition</div>
-        </div>
-      </header>
+      <PageHeader titre="Éditions de l'UMPJ" sousTitre="Rapports par édition" />
 
       <div className="form-actions" style={{ marginBottom: 14 }}>
         <Link href="/editions/nouvelle/edit" className="btn">+ Nouvelle édition</Link>

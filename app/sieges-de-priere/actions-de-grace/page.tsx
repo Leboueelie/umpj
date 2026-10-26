@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { ActionDeGrace, Zone } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
 
@@ -141,18 +142,19 @@ export default function ActionsDeGracePage() {
 
   return (
     <main className="wrap">
-      <Link href="/sieges-de-priere" className="back-link">← Les Sièges de Prière</Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Actions de Grâce</h1>
-          <div className="sub">
-            {actif
-              ? `${actif} — ${fichiersActifs.length} fichier(s)`
-              : `${fichiers.length} fichiers au total`}
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Actions de Grâce"
+        sousTitre={
+          actif
+            ? `${actif} — ${fichiersActifs.length} fichier(s)`
+            : `${fichiers.length} fichiers au total`
+        }
+        actions={
+          <Link href="/sieges-de-priere" className="link-btn">
+            &larr; Les Sièges de Prière
+          </Link>
+        }
+      />
 
       {error && <div className="err">{error}</div>}
 

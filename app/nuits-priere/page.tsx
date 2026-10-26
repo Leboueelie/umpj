@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/nav/PageHeader";
 
 export const metadata: Metadata = {
   title: "Nuits de Prière - UMPJ",
@@ -21,16 +22,7 @@ const features = [
 export default function NuitsDePrierePage() {
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">
-        ← Accueil
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>LES NUITS DE PRIÈRE</h1>
-          <div className="sub">Gestion des nuits de prière</div>
-        </div>
-      </header>
+      <PageHeader titre="Les Nuits de Prière" sousTitre="Gestion des nuits de prière" />
 
       <div className="cards-grid">
         {features.map((f) => (

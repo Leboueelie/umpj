@@ -1,88 +1,225 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getUtilisateurActuel } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "UMPJ",
 };
 
-const sections = [
+const CONSULTATION = [
   {
-    href: "/maison-de-priere",
-    title: "MAISON DE PRIERE D'ABIDJAN POUR TOUTES LES NATIONS",
-    desc: "Registres de temps de prière par cahier / église.",
-  },
-  {
-    href: "/chambres",
-    title: "LISTE DES CHAMBRES DE PRIERE",
-    desc: "Liste des chambres de prière par zone, avec détails et gestion.",
-  },
-  {
-    href: "/zones",
-    title: "Fiche mensuelle des heures de prière par zone",
-    desc: "Saisie par zone / région spirituelle, cumul national automatique.",
-  },
-  {
-    href: "/zones/fiches",
-    title: "Liste des fiches mensuelles",
-    desc: "Toutes les fiches enregistrées par mois, cliquables (vue complète).",
-  },
-  {
-    href: "/editions",
-    title: "EDITIONS DE L'UMPJ",
-    desc: "Rapports par édition (modèle : 31e édition, Février 2026).",
-  },
-  {
-    href: "/sieges-de-priere",
-    title: "LES SIÈGES DE PRIÈRE",
-    desc: "Gestion des sièges de prière incluant actions de grâce, documents et ressources par comité et région.",
-  },
-  {
-    href: "/equipes-priere",
-    title: "ÉQUIPES DE PRIÈRE",
-    desc: "Sujets de prière avec équipes par zone, période et calcul du volume (temps × participants).",
-  },
-  {
-    href: "/nuits-priere",
-    title: "NUITS DE PRIÈRE",
-    desc: "Gestion des nuits de prière (Vendredi, Mardi, Autre) avec calcul du temps et volume par participants.",
-  },
-  {
-    href: "/jeune",
-    title: "JEÛNE",
-    desc: "Gestion des documents PDF par catégorie de jeûne (Nation, Début de mois, Dirigeants, CRPPF, Ministère).",
-  },
-  {
-    href: "/proclamation",
-    title: "PROCLAMATION",
-    desc: "Gestion des proclamations par comité et région avec upload, téléchargement et impression de PDF.",
+    href: "/rapports",
+    titre: "Rapports",
+    desc: "Espace central des rapports : maisons de prière, zones, éditions et autres modules.",
   },
   {
     href: "/banque",
-    title: "Banque des accomplissements",
-    desc: "Consultation par période des accomplissements : maisons de prière, zones et éditions.",
+    titre: "Banque des accomplissements",
+    desc: "Consultation par période : trois sources indépendantes (maisons de prière, zones, éditions), lecture seule.",
   },
 ];
 
-export default function Home() {
+const GROUPES_MODULES: {
+  titre: string;
+  items: { href: string; titre: string; desc: string }[];
+}[] = [
+  {
+    titre: "Saisies récurrentes",
+    items: [
+      {
+        href: "/maison-de-priere",
+        titre: "Maisons de prière",
+        desc: "Cahiers de temps de prière par église.",
+      },
+      {
+        href: "/chambres",
+        titre: "Chambres de prière",
+        desc: "Liste des chambres par zone.",
+      },
+      {
+        href: "/zones",
+        titre: "Zones",
+        desc: "Fiche mensuelle des heures de prière par zone.",
+      },
+      {
+        href: "/zones/fiches",
+        titre: "Fiches mensuelles",
+        desc: "Toutes les fiches enregistrées par mois.",
+      },
+      {
+        href: "/equipes-priere",
+        titre: "Équipes de prière",
+        desc: "Sujets de prière et équipes par zone.",
+      },
+    ],
+  },
+  {
+    titre: "Éditions & événements",
+    items: [
+      {
+        href: "/editions",
+        titre: "Éditions",
+        desc: "Rapports par édition de l'UMPJ.",
+      },
+      {
+        href: "/sieges-de-priere",
+        titre: "Sièges de prière",
+        desc: "Sessions par édition, actions de grâce et documents.",
+      },
+      {
+        href: "/nuits-priere",
+        titre: "Nuits de prière",
+        desc: "Nuits de prière et croisades de jeûne.",
+      },
+    ],
+  },
+  {
+    titre: "Documents & publications",
+    items: [
+      {
+        href: "/jeune",
+        titre: "Jeûne",
+        desc: "Documents de jeûne par catégorie.",
+      },
+      {
+        href: "/proclamation",
+        titre: "Proclamation",
+        desc: "Proclamations par comité et région.",
+      },
+    ],
+  },
+];
+
+const ADMINISTRATION = [
+  {
+    href: "/admin/utilisateurs",
+    titre: "Utilisateurs",
+    desc: "Comptes, rôles et activation des accès.",
+  },
+];
+
+function numero(indice: number) {
+  return String(indice + 1).padStart(2, "0");
+}
+
+function debutGroupe(indice: number) {
+  return GROUPES_MODULES.slice(0, indice).reduce(
+    (total, g) => total + g.items.length,
+    0
+  );
+}
+
+export default async function Home() {
+  let admin = false;
+  let connecte = false;
+  try {
+    const u = await getUtilisateurActuel();
+    connecte = !!u;
+    admin = u?.role === "ADMIN";
+  } catch {
+    connecte = false;
+    admin = false;
+  }
+
+  const groupes = GROUPES_MODULES.map((g, i) => ({
+    ...g,
+    items: g.items.map((item, j) => ({
+      ...item,
+      num: numero(debutGroupe(i) + j),
+    })),
+  }));
+
   return (
-    <main className="wrap">
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Université Mondiale de la Prière et du Jeûne</h1>
-          <div className="sub">UMPJ</div>
+    <main className="accueil-page">
+      <header className="accueil-masthead">
+        <div className="accueil-identite">
+          <img
+            src="/logo.png"
+            alt="Logo de l'UMPJ"
+            width={378}
+            height={373}
+            className="accueil-logo"
+          />
+          <div>
+            <p className="accueil-kicker">UMPJ</p>
+            <h1 className="accueil-titre">
+              Université Mondiale de la Prière et du Jeûne
+            </h1>
+            <span className="accueil-filet" aria-hidden="true" />
+            <p className="accueil-chapo">
+              {connecte
+                ? "Modules de gestion"
+                : "Consultation — connectez-vous pour gérer"}
+            </p>
+          </div>
         </div>
+
+        <section className="accueil-panel" aria-label="Consultation">
+          <h2 className="accueil-panel-titre">Consulter</h2>
+          <div>
+            {CONSULTATION.map((a) => (
+              <Link key={a.href} href={a.href} className="accueil-acces">
+                <span className="accueil-acces-txt">
+                  <strong>{a.titre}</strong>
+                  <span className="accueil-acces-desc">{a.desc}</span>
+                </span>
+                <span className="accueil-chevron" aria-hidden="true">
+                  ›
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </header>
 
-      <div className="cards-grid">
-        {sections.map((s) => (
-          <Link key={s.href} href={s.href} className="section-card">
-            <div className="section-title">{s.title}</div>
-            <div className="section-desc">{s.desc}</div>
-            <span className="section-go">Ouvrir &rarr;</span>
-          </Link>
-        ))}
-      </div>
+      <section className="accueil-zone">
+        <h2 className="accueil-rubrique">Gérer</h2>
+        <div className="accueil-colonnes">
+          {groupes.map((g) => (
+            <div className="accueil-col" key={g.titre}>
+              <h3 className="accueil-col-titre">{g.titre}</h3>
+              <ol className="accueil-liste">
+                {g.items.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="accueil-rang">
+                      <span className="accueil-num">{item.num}</span>
+                      <span className="accueil-rang-txt">
+                        <strong>{item.titre}</strong> — {item.desc}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {admin ? (
+        <section className="accueil-zone">
+          <h2 className="accueil-rubrique">Administration</h2>
+          <ol className="accueil-liste accueil-liste-admin">
+            {ADMINISTRATION.map((a, i) => (
+              <li key={a.href}>
+                <Link href={a.href} className="accueil-rang">
+                  <span className="accueil-num">
+                    {numero(GROUPES_MODULES.reduce((n, g) => n + g.items.length, 0) + i)}
+                  </span>
+                  <span className="accueil-rang-txt">
+                    <strong>{a.titre}</strong> — {a.desc}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <p className="accueil-note">
+          {connecte
+            ? "Votre compte dispose d'un accès en consultation. Utilisez la navigation « Banque des accomplissements »."
+            : "Connectez-vous pour accéder aux modules de gestion."}
+        </p>
+      )}
     </main>
   );
 }

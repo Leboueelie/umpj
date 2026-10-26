@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { SujetPriere, EquipePriere } from "@/lib/types";
 import { fmtDuree, fmtDate, normalizeDate } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
@@ -204,16 +205,10 @@ export default function EquipesPrierePage() {
 
   return (
     <div className="wrap">
-      <Link href="/" className="back-link">
-        ← Accueil
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <div className="titles">
-          <h1>ÉQUIPES DE PRIÈRE</h1>
-          <div className="sub">Gestion des sujets de prière et équipes par zone</div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Équipes de prière"
+        sousTitre="Gestion des sujets de prière et équipes par zone"
+      />
 
       <div className="card">
         <h3>Sujets de prière</h3>

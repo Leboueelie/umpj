@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { Jeune } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
 
@@ -109,20 +110,14 @@ export default function JeunePage() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">
-        ← Accueil
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>JEÛNE</h1>
-          <div className="sub">
-            {activeCategorie
-              ? `${labelCategorie} — ${fichiersActifs.length} fichier(s)`
-              : `${fichiers.length} fichiers au total`}
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Jeûne"
+        sousTitre={
+          activeCategorie
+            ? `${labelCategorie} — ${fichiersActifs.length} fichier(s)`
+            : `${fichiers.length} fichiers au total`
+        }
+      />
 
       {error && <div className="err">{error}</div>}
 

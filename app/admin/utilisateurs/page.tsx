@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useFeedback } from "@/components/Feedback";
+import { PageHeader } from "@/components/nav/PageHeader";
 
 type Compte = {
   id: string;
@@ -119,19 +120,13 @@ export default function AdminUtilisateursPage() {
 
   return (
     <div className="wrap">
-      <Link href="/" className="back-link">
-        ← Accueil
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <h1 style={{ margin: 0, fontSize: 22 }}>Gestion des utilisateurs</h1>
-      </header>
+      <PageHeader titre="Gestion des utilisateurs" />
       {node}
       {erreur && <p className="err">{erreur}</p>}
 
       <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>Créer un compte</h2>
-        <form onSubmit={creer} className="filters" style={{ alignItems: "flex-end" }}>
+        <h3>Créer un compte</h3>
+        <form onSubmit={creer} className="filters">
           <div className="field">
             <label>Email</label>
             <input
@@ -170,51 +165,45 @@ export default function AdminUtilisateursPage() {
         </form>
       </div>
 
-      <div className="card" style={{ padding: 20 }}>
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>Comptes existants</h2>
+      <div className="card">
+        <h3>Comptes existants</h3>
         {comptes.length === 0 ? (
           <p className="empty">Aucun compte.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ textAlign: "left", borderBottom: "1px solid rgba(255,255,255,.2)" }}>
-                <th style={{ padding: "6px 8px" }}>Email</th>
-                <th style={{ padding: "6px 8px" }}>Rôle</th>
-                <th style={{ padding: "6px 8px" }}>État</th>
-                <th style={{ padding: "6px 8px" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comptes.map((c) => (
-                <tr key={c.id} style={{ borderBottom: "1px solid rgba(255,255,255,.08)" }}>
-                  <td style={{ padding: "8px" }}>{c.email}</td>
-                  <td style={{ padding: "8px" }}>{c.role}</td>
-                  <td style={{ padding: "8px" }}>
-                    {c.actif ? "Actif" : "Désactivé"}
-                  </td>
-                  <td style={{ padding: "8px" }}>
-                    <button
-                      className="btn"
-                      onClick={() => basculerActif(c)}
-                      style={{ marginRight: 8 }}
-                    >
-                      {c.actif ? "Désactiver" : "Réactiver"}
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={() => changerRole(c)}
-                      style={{ marginRight: 8 }}
-                    >
-                      {c.role === "ADMIN" ? "Passer LECTEUR" : "Passer ADMIN"}
-                    </button>
-                    <button className="btn" onClick={() => reinitialiser(c)}>
-                      Réinitialiser le mot de passe
-                    </button>
-                  </td>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Rôle</th>
+                  <th>État</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {comptes.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.email}</td>
+                    <td>{c.role}</td>
+                    <td>{c.actif ? "Actif" : "Désactivé"}</td>
+                    <td>
+                      <span className="td-btns">
+                        <button className="btn" onClick={() => basculerActif(c)}>
+                          {c.actif ? "Désactiver" : "Réactiver"}
+                        </button>
+                        <button className="btn" onClick={() => changerRole(c)}>
+                          {c.role === "ADMIN" ? "Passer LECTEUR" : "Passer ADMIN"}
+                        </button>
+                        <button className="btn" onClick={() => reinitialiser(c)}>
+                          Réinitialiser le mot de passe
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

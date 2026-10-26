@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { SiegePriere } from "@/lib/types";
 import { fmtDuree, fmtDate } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
@@ -73,18 +74,15 @@ export default function SiegeDePrierePage() {
 
   return (
     <main className="wrap">
-      <Link href="/sieges-de-priere" className="back-link">
-        ← Les Sièges de Prière
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <div className="titles">
-          <h1>Siège de Prière</h1>
-          <div className="sub">
-            {sieges.length} session(s) · {editions.length} édition(s)
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        titre="Siège de Prière"
+        sousTitre={`${sieges.length} session(s) · ${editions.length} édition(s)`}
+        actions={
+          <Link href="/sieges-de-priere" className="link-btn">
+            &larr; Les Sièges de Prière
+          </Link>
+        }
+      />
 
       {error && <div className="err">{error}</div>}
 

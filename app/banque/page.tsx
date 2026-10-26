@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/nav/PageHeader";
 import type { IndexBanque } from "@/lib/banque-api";
 import type { RapportBanque } from "@/lib/banque";
 import { fmtNombre } from "@/lib/banque";
@@ -140,12 +140,6 @@ export default function BanquePage() {
     }
   }
 
-  async function deconnexion() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
   const validationSaisie = validerPeriodeFr(du, au);
   const alerteLongue =
     validationSaisie.ok &&
@@ -161,19 +155,10 @@ export default function BanquePage() {
 
   return (
     <main className="wrap">
-      <Link href="/" className="back-link">
-        &larr; Accueil
-      </Link>
-      <header className="app-header">
-        <img src="/logo.png" alt="Logo UMPJ" className="logo" />
-        <div className="titles">
-          <h1>Banque des accomplissements</h1>
-          <div className="sub">Consultation par période — lecture seule</div>
-        </div>
-        <button className="btn" type="button" onClick={deconnexion} style={{ marginLeft: "auto" }}>
-          Se déconnecter
-        </button>
-      </header>
+      <PageHeader
+        titre="Banque des accomplissements"
+        sousTitre="Consultation par période — lecture seule"
+      />
 
       <div className="card">
         <p style={{ margin: 0, lineHeight: 1.5 }}>
