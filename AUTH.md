@@ -25,7 +25,7 @@
 | Rôle | toujours relu depuis la table `Utilisateur` (le rôle du cookie n'est jamais une preuve) |
 | CSRF | sur `/api/*` en méthode mutante : si l'en-tête `Origin` est présent, son hôte doit correspondre à la requête ; `Origin` absent accepté (clients non navigateur — `SameSite=Lax` bloque déjà les cookies cross-site) |
 | Force brute | table `TentativeConnexion` : **5 échecs maximum / 15 minutes**, par email et par empreinte d'IP (HMAC de `X-Forwarded-For`, jamais l'IP en clair) ; réponses génériques (pas d'énumération d'utilisateurs) |
-| En-têtes | `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` (pas de CSP restrictive — non vérifiée sur l'existant) |
+| En-têtes | `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`, `Permissions-Policy` (camera/microphone/geolocation/payment/usb gelés) (pas de CSP restrictive — non vérifiée sur l'existant) |
 
 ## 3. Schéma ajouté (tables de sécurité)
 
@@ -79,7 +79,7 @@ Si plus aucun administrateur est en mesure de se connecter (mot de passe oublié
    - réactiver les comptes nécessaires,
    - désactiver le compte de secours s'il n'est plus utile.
 
-**Interdiction opérationnelle :** `AUTH_GARDE=off` n'est pas une procédure de récupération. Ce levier rouvre l'application entière (statut d'avant-S1) et ne doit être utilisé qu'en incident documenté, le temps d'appliquer la procédure ci-dessus.
+**Interdiction opérationnelle :** `AUTH_GARDE=off` n'est pas une procédure de récupération. Ce levier rouvre l'application entière (statut d'avant-S1) et ne doit être utilisé qu'en incident documenté, le temps d'appliquer la procédure ci-dessus. Il est **sans effet en production** (`NODE_ENV=production`) : la garde y reste toujours active.
 
 ## 7. Journal et révocation
 
