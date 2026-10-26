@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { pool } from "@/lib/db";
-import { verifySession } from "@/lib/auth-core.mjs";
+import { verifySession, LONGUEUR_SECRET_MIN } from "@/lib/auth-core.mjs";
 import type { SessionPayload } from "@/lib/auth-core.mjs";
 
 export const SESSION_COOKIE = "umpj_session";
@@ -17,9 +17,9 @@ export type UtilisateurActuel = {
 
 function secret(): string {
   const s = process.env.AUTH_SECRET;
-  if (!s || s.length < 16) {
+  if (!s || s.length < LONGUEUR_SECRET_MIN) {
     throw new Error(
-      "AUTH_SECRET manquant ou trop court. Configurez-le (voir AUTH.md)."
+      `AUTH_SECRET manquant ou trop court (${LONGUEUR_SECRET_MIN} caractères minimum). Configurez-le (voir AUTH.md).`
     );
   }
   return s;
