@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { enteteContentDisposition } from "@/lib/fichiers";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,7 +22,8 @@ export async function GET(_req: Request, { params }: Params) {
   return new Response(row.data, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${row.nomFichier}"`,
+      // Nom assaini : jamais de valeur brute issue de la base (anti injection d'en-tête).
+      "Content-Disposition": enteteContentDisposition(row.nomFichier),
     },
   });
 }

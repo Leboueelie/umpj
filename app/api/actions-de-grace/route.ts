@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { estPdf } from "@/lib/fichiers";
 
 export async function GET(req: Request) {
   const acces = await requireAdmin();
@@ -40,6 +41,12 @@ export async function POST(req: Request) {
   if (!file || !comite)
     return NextResponse.json({ error: "Fichier et comité/région requis." }, { status: 400 });
 
+  if (comite.length > 150)
+    return NextResponse.json({ error: "Comité/région trop long (150 caractères maximum)." }, { status: 400 });
+
+  if (type.length > 50)
+    return NextResponse.json({ error: "Type trop long (50 caractères maximum)." }, { status: 400 });
+
   if (file.type !== "application/pdf")
     return NextResponse.json({ error: "Seuls les fichiers PDF sont acceptés." }, { status: 400 });
 
@@ -47,6 +54,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Le fichier dépasse 10 Mo." }, { status: 400 });
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Le MIME déclaré est fourni par le client : vérifier le contenu réel.
+  if (!estPdf(buffer))
+    return NextResponse.json(
+      { error: "Le contenu du fichier n'est pas un PDF valide." },
+      { status: 400 }
+    );
+
   const id = crypto.randomUUID();
 
   await pool.query(

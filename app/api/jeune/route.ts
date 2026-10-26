@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { estPdf } from "@/lib/fichiers";
 import type { Jeune } from "@/lib/types";
 
 const VALID_CATEGORIES = ["nation", "debut-mois", "dirigeants", "crppf", "ministere"];
@@ -64,6 +65,15 @@ export async function POST(req: Request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Le MIME déclaré est fourni par le client : vérifier le contenu réel.
+  if (!estPdf(buffer)) {
+    return NextResponse.json(
+      { error: "Le contenu du fichier n'est pas un PDF valide." },
+      { status: 400 }
+    );
+  }
+
   const id = crypto.randomUUID();
 
   await pool.query(

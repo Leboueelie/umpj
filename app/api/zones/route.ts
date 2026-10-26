@@ -17,6 +17,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const nom = (body.nom ?? "").toString().trim();
   if (!nom) return NextResponse.json({ error: "Nom requis." }, { status: 400 });
+  if (nom.length > 150)
+    return NextResponse.json({ error: "Nom trop long (150 caractères maximum)." }, { status: 400 });
   const r = await pool.query(
     `INSERT INTO "Zone" ("id","nom","ordre")
      VALUES ($1,$2,(SELECT COALESCE(MAX("ordre"),0)+1 FROM "Zone"))
