@@ -28,8 +28,9 @@ export async function POST(req: Request) {
     await client.query("COMMIT");
     return NextResponse.json({ ok: true });
   } catch (err) {
+    console.error("Échec du déplacement des entrées :", err);
     await client.query("ROLLBACK");
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "Échec du déplacement." }, { status: 500 });
   } finally {
     client.release();
   }

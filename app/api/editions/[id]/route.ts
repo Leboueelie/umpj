@@ -101,7 +101,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     if (!r.rowCount) return NextResponse.json({ error: "Edition introuvable." }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error("Échec de la mise à jour de l'édition :", e);
+    return NextResponse.json({ error: "Échec de la mise à jour de l'édition." }, { status: 500 });
   }
 }
 

@@ -131,9 +131,9 @@ export async function POST(req: Request) {
     await client.query("COMMIT");
     return NextResponse.json({ cahiersCrees, cahiersFondus, cahiersIgnores, lignesCrees, lignesIgnorees });
   } catch (e) {
+    console.error("Échec de l'import :", e);
     await client.query("ROLLBACK");
-    const msg = e instanceof Error ? e.message : "Échec de l'import.";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Échec de l'import." }, { status: 500 });
   } finally {
     client.release();
   }

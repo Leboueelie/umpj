@@ -76,8 +76,9 @@ export async function POST(req: Request) {
     await client.query("COMMIT");
     return NextResponse.json({ zonesCrees, creees, maj, supprimees, ignorees });
   } catch (err) {
+    console.error("Échec de l'import des zones :", err);
     await client.query("ROLLBACK");
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "Échec de l'import des zones." }, { status: 500 });
   } finally {
     client.release();
   }

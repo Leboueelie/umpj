@@ -123,10 +123,9 @@ export async function POST(req: Request) {
     }
 
     if (!u.actif) {
-      return NextResponse.json(
-        { error: "Compte désactivé." },
-        { status: 403 }
-      );
+      // Réponse générique identique à un échec d'identifiants : ne révèle pas
+      // l'existence ni l'état du compte (anti énumération).
+      return generique();
     }
 
     await reinitialiser([cleEmail, ...(cleIp ? [cleIp] : [])]);

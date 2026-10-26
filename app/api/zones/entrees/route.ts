@@ -104,8 +104,9 @@ export async function POST(req: Request) {
     await client.query("COMMIT");
     return NextResponse.json({ creees, maj, supprimees });
   } catch (err) {
+    console.error("Échec de l'enregistrement des entrées :", err);
     await client.query("ROLLBACK");
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "Échec de l'enregistrement." }, { status: 500 });
   } finally {
     client.release();
   }

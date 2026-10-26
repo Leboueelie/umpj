@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     );
     return NextResponse.json({ id: r.rows[0].id }, { status: 201 });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    console.error("Échec de l'import de l'édition :", e);
+    return NextResponse.json({ error: "Échec de l'import de l'édition." }, { status: 500 });
   }
 }
