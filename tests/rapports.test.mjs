@@ -10,6 +10,7 @@ import {
   MODULES_RAPPORT,
   construireRapport,
 } from "../lib/rapports.ts";
+import { estUrlTestLocale } from "./helpers/garde-test.mjs";
 
 // ---- 1. Validation de période ISO ----
 
@@ -71,45 +72,66 @@ test("catalogue : les six modules de comptage sont déclarés", () => {
 // ---- 3. Moteur (SQL) : env-gated sur la base locale isolée ----
 
 const dbUrl = process.env.BANQUE_TEST_DATABASE_URL;
+// Garde anti-production : la cible doit être locale (localhost/127.0.0.1).
+// Aucun pool n'est créé tant que la cible n'est pas validée.
+const sqlActif = estUrlTestLocale(dbUrl);
 
 test(
   "moteur : module inconnu → null",
-  { skip: !dbUrl },
+  { skip: !sqlActif },
   async () => {
-    const { pool } = await import("../lib/db.ts");
-    assert.equal(await construireRapport(pool, "inconnu", null, null), null);
+    assert.ok(estUrlTestLocale(dbUrl), "cible de test non locale — exécution refusée");
+    const { Pool } = await import("pg");
+    const pool = new Pool({ connectionString: dbUrl, family: 4 });
+    try {
+      assert.equal(await construireRapport(pool, "inconnu", null, null), null);
+    } finally {
+      await pool.end().catch(() => {});
+    }
   }
 );
 
 test(
   "moteur : chambres refuse une période",
-  { skip: !dbUrl },
+  { skip: !sqlActif },
   async () => {
-    const { pool } = await import("../lib/db.ts");
-    await assert.rejects(
-      () => construireRapport(pool, "chambres", "2026-01-01", "2026-01-31"),
-      /période/
-    );
+    assert.ok(estUrlTestLocale(dbUrl), "cible de test non locale — exécution refusée");
+    const { Pool } = await import("pg");
+    const pool = new Pool({ connectionString: dbUrl, family: 4 });
+    try {
+      await assert.rejects(
+        () => construireRapport(pool, "chambres", "2026-01-01", "2026-01-31"),
+        /période/
+      );
+    } finally {
+      await pool.end().catch(() => {});
+    }
   }
 );
 
 for (const module of ["equipes", "nuits", "croisades", "sieges", "documents", "chambres"]) {
   test(
     `moteur : rapport ${module} calculable sur base vide`,
-    { skip: !dbUrl },
+    { skip: !sqlActif },
     async () => {
-      const { pool } = await import("../lib/db.ts");
-      const rapport = await construireRapport(pool, module, null, null);
-      assert.equal(rapport.module, module);
-      assert.ok(rapport.intitule.length > 0);
-      assert.ok(rapport.source.length > 0);
-      assert.ok(rapport.indicateurs.length > 0);
-      assert.ok(rapport.limites.length > 0);
-      assert.equal(typeof rapport.volumesExamines, "number");
-      assert.ok(Array.isArray(rapport.anomalies));
-      // Aucun total inter-modules ne doit apparaître.
-      for (const ind of rapport.indicateurs) {
-        assert.ok(!/total général/i.test(ind.libelle));
+      assert.ok(estUrlTestLocale(dbUrl), "cible de test non locale — exécution refusée");
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: dbUrl, family: 4 });
+      try {
+        const rapport = await construireRapport(pool, module, null, null);
+        assert.equal(rapport.module, module);
+        assert.ok(rapport.intitule.length > 0);
+        assert.ok(rapport.source.length > 0);
+        assert.ok(rapport.indicateurs.length > 0);
+        assert.ok(rapport.limites.length > 0);
+        assert.equal(typeof rapport.volumesExamines, "number");
+        assert.ok(Array.isArray(rapport.anomalies));
+        // Aucun total inter-modules ne doit apparaître.
+        for (const ind of rapport.indicateurs) {
+          assert.ok(!/total général/i.test(ind.libelle));
+        }
+      } finally {
+        await pool.end().catch(() => {});
       }
     }
   );
@@ -117,12 +139,18 @@ for (const module of ["equipes", "nuits", "croisades", "sieges", "documents", "c
 
 test(
   "moteur : période invalide → rejet",
-  { skip: !dbUrl },
+  { skip: !sqlActif },
   async () => {
-    const { pool } = await import("../lib/db.ts");
-    await assert.rejects(
-      () => construireRapport(pool, "nuits", "2026-02-01", "2026-01-01"),
-      /précéder/
-    );
+    assert.ok(estUrlTestLocale(dbUrl), "cible de test non locale — exécution refusée");
+    const { Pool } = await import("pg");
+    const pool = new Pool({ connectionString: dbUrl, family: 4 });
+    try {
+      await assert.rejects(
+        () => construireRapport(pool, "nuits", "2026-02-01", "2026-01-01"),
+        /précéder/
+      );
+    } finally {
+      await pool.end().catch(() => {});
+    }
   }
 );

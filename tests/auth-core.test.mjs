@@ -7,6 +7,7 @@ import {
   verifySession,
   hashIp,
   gardeActive,
+  premiereIp,
   LONGUEUR_SECRET_MIN,
 } from "../lib/auth-core.mjs";
 
@@ -161,4 +162,37 @@ test("gardeActive : active par défaut hors production", () => {
   assert.equal(gardeActive({ NODE_ENV: "development" }), true);
   assert.equal(gardeActive({ NODE_ENV: "development", AUTH_GARDE: "tout" }), true);
   assert.equal(gardeActive({}), true);
+});
+
+test("premiereIp : préfère x-real-ip (défini par Vercel)", () => {
+  const req = new Request("http://localhost/api/login", {
+    headers: { "x-real-ip": "9.8.7.6", "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
+  });
+  assert.equal(premiereIp(req), "9.8.7.6");
+});
+
+test("premiereIp : repli sur le dernier X-Forwarded-For (pas le premier)", () => {
+  const req = new Request("http://localhost/api/login", {
+    headers: { "x-forwarded-for": "client-fake, 1.2.3.4" },
+  });
+  assert.equal(premiereIp(req), "1.2.3.4");
+});
+
+test("premiereIp : X-Forwarded-For sans virgule → valeur unique", () => {
+  const req = new Request("http://localhost/api/login", {
+    headers: { "x-forwarded-for": "1.2.3.4" },
+  });
+  assert.equal(premiereIp(req), "1.2.3.4");
+});
+
+test("premiereIp : aucun en-tête → null", () => {
+  const req = new Request("http://localhost/api/login");
+  assert.equal(premiereIp(req), null);
+});
+
+test("premiereIp : x-real-ip vide + XFF vide → null", () => {
+  const req = new Request("http://localhost/api/login", {
+    headers: { "x-real-ip": "  ", "x-forwarded-for": "  " },
+  });
+  assert.equal(premiereIp(req), null);
 });
