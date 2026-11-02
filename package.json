@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "setup-db": "node scripts/init-db.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "db:check": "node scripts/check-db-local.mjs",
+    "dev:local": "npm run db:check && next dev",
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down"
   },
   "dependencies": {
     "next": "^16.3.2",
