@@ -19,7 +19,7 @@ export default async function RootLayout({
   let session: SessionShell = null;
   try {
     const u = await getUtilisateurActuel();
-    if (u) session = { email: u.email, role: u.role };
+    if (u) session = { email: u.email, nom: u.nom, role: u.role };
   } catch {
     session = null;
   }

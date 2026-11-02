@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import { useParams, useRouter } from "next/navigation";
 import type { SiegePriere } from "@/lib/types";
 import { fmtDuree, fmtDate } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
 import { SiegeForm } from "@/components/SiegeForm";
+import { api } from "@/lib/api";
 
 function isoDay(raw: string): string {
   return raw.split("T")[0];
@@ -31,9 +31,7 @@ export default function SiegeEditionPage() {
   async function loadSieges() {
     if (!edition) return;
     try {
-      const r = await fetch(`/api/sieges-priere?edition=${edition}`);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<SiegePriere[]>(`/api/sieges-priere?edition=${edition}`);
       setSieges(Array.isArray(data) ? data : []);
     } catch (e) {
       setError((e as Error).message);
@@ -42,9 +40,7 @@ export default function SiegeEditionPage() {
 
   async function loadEditions() {
     try {
-      const r = await fetch("/api/sieges-priere/editions");
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<EditionItem[]>("/api/sieges-priere/editions");
       setEditions(Array.isArray(data) ? data : []);
     } catch (e) {
       setError((e as Error).message);
@@ -66,9 +62,7 @@ export default function SiegeEditionPage() {
   async function deleteSiege(id: string, jour: number) {
     if (!(await confirm(`Supprimer la session du jour ${jour} ?`))) return;
     try {
-      const r = await fetch(`/api/sieges-priere/${id}`, { method: "DELETE" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      await api(`/api/sieges-priere/${id}`, { method: "DELETE" });
       toast("Session supprimée.", "success");
       await reload();
     } catch (e) {
@@ -96,7 +90,7 @@ export default function SiegeEditionPage() {
     return (
       <main className="wrap">
         <Link href="/sieges-de-priere/siege-de-priere" className="back-link">
-          ← Toutes les éditions
+          ← Liste des Sièges de Prière
         </Link>
         <div className="err">Numéro d&apos;édition invalide.</div>
       </main>
@@ -105,15 +99,20 @@ export default function SiegeEditionPage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre={`Siège de Prière — Édition ${edition}`}
-        sousTitre={`${sieges.length} session(s) · ${nbJours} jour(s) · ${totalParticipants} participants · ${fmtDuree(totalTempsMis)}`}
-        actions={
-          <Link href="/sieges-de-priere/siege-de-priere" className="link-btn">
-            &larr; Toutes les éditions
-          </Link>
-        }
-      />
+      <Link href="/sieges-de-priere/siege-de-priere" className="back-link">
+        ← Liste des Sièges de Prière
+      </Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Siège de Prière</p>
+          <h1 className="accueil-titre">Édition {edition}</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {`${sieges.length} session(s) · ${nbJours} jour(s) · ${totalParticipants} participants · ${fmtDuree(totalTempsMis)}`}
+          </p>
+        </div>
+      </header>
 
       <div className="month-nav">
         <button
@@ -147,9 +146,6 @@ export default function SiegeEditionPage() {
         >
           ›
         </button>
-        <Link href="/sieges-de-priere/siege-de-priere" className="link-btn">
-          Toutes les éditions →
-        </Link>
       </div>
 
       {error && <div className="err">{error}</div>}

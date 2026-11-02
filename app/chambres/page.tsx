@@ -2,19 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Zone, ChambreDePriere } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
-
-async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erreur serveur");
-  return data as T;
-}
+import { api } from "@/lib/api";
 
 interface ChambreForm {
   lieu: string;
@@ -156,14 +146,20 @@ export default function ChambresPage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Liste des Chambres de Prière"
-        sousTitre={
-          zoneActive
-            ? `${zoneActive.nom} — ${chambresZone.length} chambre(s)`
-            : `${zones.length} zones · ${chambres.length} chambres au total`
-        }
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Chambres de Prière</p>
+          <h1 className="accueil-titre">Liste des Chambres de Prière</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {zoneActive
+              ? `${zoneActive.nom} — ${chambresZone.length} chambre(s)`
+              : `${zones.length} zones · ${chambres.length} chambres au total`}
+          </p>
+        </div>
+      </header>
 
       {error && <div className="err">{error}</div>}
 

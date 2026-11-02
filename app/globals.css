@@ -16,7 +16,7 @@ body {
   background: var(--bg);
   color: #1f2933;
 }
-.wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 16px; overflow-x: hidden; }
 .app-header {
   display: flex; align-items: center; gap: 16px; justify-content: center;
   flex-wrap: wrap; text-align: center;
@@ -47,6 +47,16 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; color: var(--navy); text-align: center;
   font-size: 0.9rem; padding: 6px 11px; border-radius: 6px;
 }
 .site-nav a:hover { color: var(--navy); background: #eef2fa; }
+.site-nav a.is-active { color: var(--navy); background: #eef2fa; font-weight: 700; }
+.site-menu-toggle {
+  display: none;
+  flex-direction: column; gap: 4px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; cursor: pointer;
+}
+.site-menu-bar {
+  display: block; width: 18px; height: 2px; background: var(--navy); border-radius: 2px;
+}
 .site-session { margin-left: auto; display: flex; align-items: center; gap: 9px; }
 .site-user {
   color: var(--navy); font-size: 0.84rem; font-weight: 600;
@@ -160,6 +170,50 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; color: var(--navy); text-align: center;
 .accueil-liste-admin .accueil-num { color: var(--muted); }
 .accueil-liste-admin .accueil-rang-txt { font-size: 0.88rem; }
 .accueil-liste-admin .accueil-rang-txt strong { font-weight: 500; }
+/* FRONT-26 : section « Gérer » — lisibilité renforcée (scopé, sans toucher
+   aux autres sections). */
+.accueil-zone--gerer .accueil-rubrique {
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  margin: 0 0 14px;
+}
+.accueil-zone--gerer .accueil-colonnes {
+  gap: clamp(24px, 3vw, 48px);
+}
+.accueil-zone--gerer .accueil-col-titre {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: var(--navy);
+}
+.accueil-zone--gerer .accueil-rang {
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 14px 10px;
+}
+.accueil-zone--gerer .accueil-num {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+}
+.accueil-zone--gerer .accueil-rang-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.accueil-zone--gerer .accueil-rang-titre {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.3;
+}
+.accueil-zone--gerer .accueil-rang-desc {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.accueil-zone--gerer .accueil-rang:hover { background: #eef2fa; }
+.accueil-zone--gerer .accueil-rang:hover .accueil-num { color: var(--accent); }
 .accueil-note {
   margin: 0; max-width: 720px; background: var(--card);
   border: 1px solid var(--border); border-radius: 10px;
@@ -167,6 +221,7 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; color: var(--navy); text-align: center;
 }
 @media (max-width: 900px) {
   .accueil-masthead { grid-template-columns: 1fr; }
+  .accueil-zone--gerer .accueil-colonnes { grid-template-columns: 1fr 1fr; gap: 20px; }
 }
 @media (max-width: 768px) {
   .accueil-colonnes { grid-template-columns: 1fr; }
@@ -194,8 +249,19 @@ h1 { font-size: 1.4rem; margin: 0 0 4px; color: var(--navy); text-align: center;
 .rapport-ok { color: var(--muted); font-size: 0.82rem; }
 .td-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 @media (max-width: 700px) {
-  .site-header-in { flex-wrap: wrap; gap: 8px; }
-  .site-nav { order: 3; width: 100%; }
+  .site-header-in { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+  .site-logo { width: 28px; height: 28px; }
+  .site-brand { font-size: 0.95rem; gap: 6px; }
+  .site-menu-toggle { display: inline-flex; margin-left: auto; padding: 8px 10px; }
+  .site-nav { display: none; order: 2; width: 100%; flex-direction: column; gap: 2px; }
+  .site-header--menu-open .site-nav { display: flex; }
+  .site-nav a { width: 100%; }
+  .site-session {
+    display: none; order: 3; width: 100%;
+    flex-direction: column; align-items: stretch; gap: 6px;
+  }
+  .site-header--menu-open .site-session { display: flex; }
+  .site-user { max-width: none; }
   .page-header { flex-direction: column; align-items: flex-start; }
 }
 .card {
@@ -254,7 +320,7 @@ select {
 }
 .step-btn:hover { background: var(--bg); }
 .btn {
-  background: var(--navy); color: #fff; border: none; border-radius: 6px;
+  background: var(--navy); color: #fff; border: none; border-radius: 8px;
   padding: 9px 16px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
@@ -312,7 +378,7 @@ select {
 }
 .note { color: var(--accent-dark); font-size: 0.85rem; margin-top: 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); }
+th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); overflow-wrap: break-word; }
 th { color: var(--muted); font-weight: 600; font-size: 0.76rem; letter-spacing: 0.2px; }
 .table-scroll input, .table-scroll select { font-size: 0.82rem; padding: 6px 8px; }
 tr.total td { font-weight: 700; background: #fdf3e0; border-top: 2px solid var(--accent); }
@@ -439,7 +505,7 @@ tr.manquant input { border-color: #f0b27a; }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .chambre-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-.chambre-card-nom { font-weight: 700; font-size: 1rem; color: var(--navy); margin-bottom: 6px; }
+.chambre-card-nom { font-weight: 700; font-size: 1rem; color: var(--navy); margin-bottom: 6px; overflow-wrap: break-word; }
 .chambre-card-nb { font-size: 0.9rem; color: var(--text); margin-bottom: 4px; }
 .chambre-card-groupe { font-size: 0.78rem; color: var(--muted); }
 
@@ -464,6 +530,7 @@ tr.manquant input { border-color: #f0b27a; }
 @media (max-width: 640px) {
   .ed-list, .ed-list-3 { column-count: 1; }
   .grid-2 { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
 }
 
 
@@ -504,6 +571,9 @@ input:focus-visible, button:focus-visible, a:focus-visible {
 @media (max-width: 600px) {
   .banque-indics { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
   .banque-anom-pied .btn { width: 100%; }
+}
+@media (max-width: 400px) {
+  .banque-indics { grid-template-columns: 1fr; }
 }
 /* Barres de résumé Banque : textes longs autorisés à revenir à la ligne */
 .banque-volumes span { white-space: normal; overflow-wrap: anywhere; }

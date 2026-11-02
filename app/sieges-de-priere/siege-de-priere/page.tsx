@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { SiegePriere } from "@/lib/types";
 import { fmtDuree, fmtDate } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
 import { SiegeForm } from "@/components/SiegeForm";
+import { api } from "@/lib/api";
 
 function isoDay(raw: string): string {
   return raw.split("T")[0];
@@ -29,9 +29,7 @@ export default function SiegeDePrierePage() {
 
   async function loadSieges() {
     try {
-      const r = await fetch("/api/sieges-priere");
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<SiegePriere[]>("/api/sieges-priere");
       setSieges(Array.isArray(data) ? data : []);
     } catch (e) {
       setError((e as Error).message);
@@ -74,15 +72,20 @@ export default function SiegeDePrierePage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Siège de Prière"
-        sousTitre={`${sieges.length} session(s) · ${editions.length} édition(s)`}
-        actions={
-          <Link href="/sieges-de-priere" className="link-btn">
-            &larr; Les Sièges de Prière
-          </Link>
-        }
-      />
+      <Link href="/sieges-de-priere" className="back-link">
+        ← Les Sièges de Prière
+      </Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Siège de Prière</p>
+          <h1 className="accueil-titre">Siège de Prière</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {`${sieges.length} session(s) · ${editions.length} édition(s)`}
+          </p>
+        </div>
+      </header>
 
       {error && <div className="err">{error}</div>}
 

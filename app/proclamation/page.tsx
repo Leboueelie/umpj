@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Proclamation, Zone } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 const COMITES = [
   "Semeur",
@@ -53,9 +53,7 @@ export default function ProclamationPage() {
     try {
       let url = `/api/proclamation?type=${type}`;
       if (nom) url += `&comite=${encodeURIComponent(nom)}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<Proclamation[]>(url);
       setFichiers(data);
     } catch (e) {
       setError((e as Error).message);
@@ -63,7 +61,7 @@ export default function ProclamationPage() {
   }
 
   useEffect(() => {
-    fetch("/api/zones").then((r) => r.json()).then(setZones).catch(() => {});
+    api<Zone[]>("/api/zones").then(setZones).catch(() => {});
     loadFichiers("comite");
   }, []);
 
@@ -123,9 +121,7 @@ export default function ProclamationPage() {
   async function supprimer(id: string, nom: string) {
     if (!(await confirm(`Supprimer "${nom}" ?`))) return;
     try {
-      const r = await fetch(`/api/proclamation/${id}`, { method: "DELETE" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      await api(`/api/proclamation/${id}`, { method: "DELETE" });
       toast("Fichier supprimé.", "success");
       await loadFichiers(onglet, actif);
     } catch (e) {
@@ -142,14 +138,20 @@ export default function ProclamationPage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Proclamation"
-        sousTitre={
-          actif
-            ? `${actif} — ${fichiersActifs.length} fichier(s)`
-            : `${fichiers.length} fichiers au total`
-        }
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Proclamation</p>
+          <h1 className="accueil-titre">Proclamation</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {actif
+              ? `${actif} — ${fichiersActifs.length} fichier(s)`
+              : `${fichiers.length} fichiers au total`}
+          </p>
+        </div>
+      </header>
 
       {error && <div className="err">{error}</div>}
 
@@ -206,14 +208,16 @@ export default function ProclamationPage() {
             <button className="link-btn" onClick={() => setActif(null)}>
               ← Retour à la grille
             </button>
-            <label className={`btn ${uploading ? "disabled" : ""}`}>
-              {uploading ? "Upload en cours…" : "Uploader un PDF"}
+            <label className={`btn ${uploading ? "disabled" : ""}`} style={{ position: "relative", color: "#fff" }}>
+              <span style={{ position: "relative", zIndex: 1 }}>
+                {uploading ? "Upload en cours…" : "Uploader un PDF"}
+              </span>
               <input
                 type="file"
                 accept=".pdf"
                 onChange={handleUpload}
                 disabled={uploading}
-                style={{ display: "none" }}
+                style={{ position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }}
               />
             </label>
           </div>

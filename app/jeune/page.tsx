@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Jeune } from "@/lib/types";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 const CATEGORIES = [
   { id: "nation", label: "Jeûne Pour la nation" },
@@ -31,9 +31,7 @@ export default function JeunePage() {
     try {
       let url = "/api/jeune";
       if (categorie) url += `?categorie=${encodeURIComponent(categorie)}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<Jeune[]>(url);
       setFichiers(data);
     } catch (e) {
       setError((e as Error).message);
@@ -91,9 +89,7 @@ export default function JeunePage() {
   async function supprimer(id: string, nom: string) {
     if (!(await confirm(`Supprimer "${nom}" ?`))) return;
     try {
-      const r = await fetch(`/api/jeune/${id}`, { method: "DELETE" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      await api(`/api/jeune/${id}`, { method: "DELETE" });
       toast("Fichier supprimé.", "success");
       await loadFichiers(activeCategorie);
     } catch (e) {
@@ -110,14 +106,20 @@ export default function JeunePage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Jeûne"
-        sousTitre={
-          activeCategorie
-            ? `${labelCategorie} — ${fichiersActifs.length} fichier(s)`
-            : `${fichiers.length} fichiers au total`
-        }
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Jeûne</p>
+          <h1 className="accueil-titre">Jeûne</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {activeCategorie
+              ? `${labelCategorie} — ${fichiersActifs.length} fichier(s)`
+              : `${fichiers.length} fichiers au total`}
+          </p>
+        </div>
+      </header>
 
       {error && <div className="err">{error}</div>}
 
@@ -146,17 +148,19 @@ export default function JeunePage() {
       {activeCategorie && (
         <div className="card">
           <div className="table-actions">
-            <button className="btn-secondary" onClick={retourGrille}>
+            <button className="btn secondary" onClick={retourGrille}>
               ← Retour aux catégories
             </button>
-            <label className="btn">
-              {uploading ? "Upload en cours..." : "Uploader un PDF"}
+            <label className="btn" style={{ position: "relative", color: "#fff" }}>
+              <span style={{ position: "relative", zIndex: 1 }}>
+                {uploading ? "Upload en cours..." : "Uploader un PDF"}
+              </span>
               <input
                 type="file"
                 accept=".pdf"
                 onChange={handleUpload}
                 disabled={uploading}
-                style={{ display: "none" }}
+                style={{ position: "absolute", opacity: 0, width: 0, height: 0, overflow: "hidden" }}
               />
             </label>
           </div>
@@ -188,9 +192,10 @@ export default function JeunePage() {
                       </td>
                       <td>
                         <button
-                          className="btn-secondary"
+                          className="btn secondary"
                           style={{ marginRight: 8 }}
                           onClick={() => imprimer(f.id)}
+                          title="Ouvre le PDF dans un nouvel onglet"
                         >
                           Voir / Imprimer
                         </button>

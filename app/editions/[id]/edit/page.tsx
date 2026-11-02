@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Edition } from "@/lib/types";
 
 export default function EditionEdit() {
@@ -38,13 +37,18 @@ export default function EditionEdit() {
 
   useEffect(() => {
     if (isNew) return;
-    fetch(`/api/editions/${id}`)
-      .then((r) => r.json())
-      .then((e: Edition) => {
+    (async () => {
+      try {
+        const r = await fetch(`/api/editions/${id}`);
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "Edition introuvable.");
+        const e = d as Edition;
         setNumero(String(e.numero));
         setReference(e.reference);
-        setDateDebut(e.dateDebut);
-        setDateFin(e.dateFin);
+        // Les dates peuvent arriver avec une heure (pg) : on ne garde que AAAA-MM-JJ
+        // pour que les champs type="date" se préremplissent correctement.
+        setDateDebut(String(e.dateDebut || "").split("T")[0].slice(0, 10));
+        setDateFin(String(e.dateFin || "").split("T")[0].slice(0, 10));
         setLibellePeriode(e.libellePeriode);
         setDelegationsPresentes(String(e.delegationsPresentes));
         setRegionsSpirituelles(String(e.regionsSpirituelles));
@@ -58,8 +62,10 @@ export default function EditionEdit() {
         setInterieurText(e.interieurLocalites.join("\n"));
         setParticipantsParJour(e.participantsParJour.map((p) => ({ jour: p.jour, date: p.date, participants: String(p.participants) })));
         setSessions(e.sessions.map((s) => ({ date: s.date, nbSessions: String(s.nbSessions), periodes: s.periodes, dureeMinutes: String(s.dureeMinutes), participants: String(s.participants) })));
-      })
-      .catch((err) => setError(err.message));
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    })();
   }, [id, isNew]);
 
   function lines(t: string): string[] {
@@ -112,27 +118,46 @@ export default function EditionEdit() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre={isNew ? "Nouvelle édition" : `Édition ${numero}e`}
-        sousTitre="Éditions de l'UMPJ"
-        actions={
-          <Link
-            href={isNew ? "/editions" : `/editions/${id}`}
-            className="link-btn"
-          >
-            &larr; Annuler
-          </Link>
-        }
-      />
+      <Link href={isNew ? "/editions" : `/editions/${id}`} className="back-link">
+        {isNew ? "← Éditions" : "← Détail de l'édition"}
+      </Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Éditions</p>
+          <h1 className="accueil-titre">
+            {isNew ? "Nouvelle édition" : `Modifier l'édition${numero ? ` ${numero}` : ""}`}
+          </h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Modification du rapport d&apos;édition de l&apos;UMPJ.
+          </p>
+        </div>
+      </header>
+
+      {error && <div className="err" style={{ marginBottom: 12 }}>{error}</div>}
 
       <div className="card">
         <h3 className="ed-section">Identification</h3>
+        <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0 0 10px" }}>
+          Champs marqués <span className="warn">*</span> : obligatoires.
+        </p>
         <div className="grid-2">
-          <label>Numéro d'édition<input value={numero} onChange={(e) => setNumero(e.target.value)} type="number" /></label>
-          <label>Référence (ex: RAPPORT UMPJ-CI 001/2026)<input value={reference} onChange={(e) => setReference(e.target.value)} /></label>
-          <label>Date début<input value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} type="date" /></label>
-          <label>Date fin<input value={dateFin} onChange={(e) => setDateFin(e.target.value)} type="date" /></label>
-          <label style={{ gridColumn: "1 / -1" }}>Libellé période (ex: 17 au 22 Février 2026)<input value={libellePeriode} onChange={(e) => setLibellePeriode(e.target.value)} /></label>
+          <label>Numéro d&apos;édition <span className="warn">*</span>
+            <input value={numero} onChange={(e) => setNumero(e.target.value)} type="number" />
+          </label>
+          <label>Référence (ex: RAPPORT UMPJ-CI 001/2026)
+            <input value={reference} onChange={(e) => setReference(e.target.value)} />
+          </label>
+          <label>Date début <span className="warn">*</span>
+            <input value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} type="date" />
+          </label>
+          <label>Date fin <span className="warn">*</span>
+            <input value={dateFin} onChange={(e) => setDateFin(e.target.value)} type="date" />
+          </label>
+          <label style={{ gridColumn: "1 / -1" }}>Libellé période (ex: 17 au 22 Février 2026)
+            <input value={libellePeriode} onChange={(e) => setLibellePeriode(e.target.value)} />
+          </label>
         </div>
 
         <h3 className="ed-section">I. Pendant l'UMPJ</h3>
@@ -188,7 +213,6 @@ export default function EditionEdit() {
       <div className="form-actions" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button className="btn" type="button" onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
         <Link href={isNew ? "/editions" : `/editions/${id}`} className="btn secondary">Annuler</Link>
-        {error && <span className="err">{error}</span>}
       </div>
     </main>
   );

@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Cahier, Ligne } from "@/lib/types";
 import { tempsMisMin, cumulMin, fmtDuree, fmtDate, normalizeHeure, normalizeDate } from "@/lib/calc";
 import { exportCahier, exportGlobal, parseImportFile } from "@/lib/excel";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 const NOM_VUE_ENSEMBLE = "MAISON DE PRIERE D ABIDJAN POUR TOUTES LES NATIONS";
 
@@ -46,16 +46,6 @@ function shiftDate(display: string, delta: number): string {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}/${d.getFullYear()}`;
-}
-
-async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erreur serveur");
-  return data as T;
 }
 
 export default function App() {
@@ -302,7 +292,7 @@ export default function App() {
 
   function cancelEdit() {
     setEditingId(null);
-    setForm({ ...form, debut: "", fin: "", personnes: "1" });
+    setForm({ ...form, debut: "08:00", fin: "20:00", personnes: "1" });
     setError("");
   }
 
@@ -347,11 +337,17 @@ export default function App() {
   }
 
   return (
-    <div className="wrap">
-      <PageHeader
-        titre="Maisons de prière"
-        sousTitre="Cahier de temps de prière — données partagées"
-      />
+    <main className="wrap">
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Maison de Prière</p>
+          <h1 className="accueil-titre">Maisons de prière</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">Cahier de temps de prière — données partagées</p>
+        </div>
+      </header>
 
       <div className="card">
         <div className="filters">
@@ -633,6 +629,6 @@ export default function App() {
         )}
       </div>
       {node}
-    </div>
+    </main>
   );
 }

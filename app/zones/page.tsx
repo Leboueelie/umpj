@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { parseImportZonesFile } from "@/lib/excel";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 function shiftMois(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
@@ -30,16 +30,6 @@ function anneesDispo(): string[] {
 }
 
 interface Val { p: string; t: string; }
-
-async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erreur serveur");
-  return data as T;
-}
 
 export default function Zones() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -175,7 +165,13 @@ export default function Zones() {
     try {
       const lignes = await parseImportZonesFile(file);
       if (lignes.length === 0) { setError("Aucune donnée exploitable trouvée dans le fichier."); return; }
-      const r = await api("/api/zones/import", {
+      const r = await api<{
+        creees: number;
+        maj: number;
+        zonesCrees: number;
+        supprimees: number;
+        ignorees: number;
+      }>("/api/zones/import", {
         method: "POST",
         body: JSON.stringify({ mois, lignes }),
       });
@@ -220,10 +216,16 @@ export default function Zones() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Fiche mensuelle des heures de prière"
-        sousTitre="Par zone / région spirituelle"
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Zones</p>
+          <h1 className="accueil-titre">Fiche mensuelle des heures de prière</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">Par zone / région spirituelle</p>
+        </div>
+      </header>
 
       <div className="card">
         <div className="month-nav">

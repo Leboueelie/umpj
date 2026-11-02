@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { IndexBanque } from "@/lib/banque-api";
 import type { RapportBanque } from "@/lib/banque";
 import { fmtNombre } from "@/lib/banque";
@@ -140,6 +140,61 @@ export default function BanquePage() {
     }
   }
 
+  const anneesDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    const idx = index;
+    if (idx?.maisons?.periode?.du) set.add(String(idx.maisons.periode.du).slice(0, 4));
+    if (idx?.maisons?.periode?.au) set.add(String(idx.maisons.periode.au).slice(0, 4));
+    (idx?.zones?.mois || []).forEach((m) => {
+      if (m && String(m).length >= 4) set.add(String(m).slice(0, 4));
+    });
+    (idx?.editions?.editions || []).forEach((e) => {
+      if (e?.dateDebut) set.add(String(e.dateDebut).slice(0, 4));
+      if (e?.dateFin) set.add(String(e.dateFin).slice(0, 4));
+    });
+    return Array.from(set)
+      .filter((y) => /^\d{4}$/.test(y))
+      .sort()
+      .reverse();
+  }, [index]);
+
+  const periodeComplete = useMemo(() => {
+    const idx = index;
+    const dus: string[] = [];
+    const aus: string[] = [];
+    if (idx?.maisons?.periode?.du) dus.push(String(idx.maisons.periode.du).slice(0, 10));
+    if (idx?.maisons?.periode?.au) aus.push(String(idx.maisons.periode.au).slice(0, 10));
+    (idx?.zones?.mois || []).forEach((m) => {
+      if (m && String(m).length >= 7) {
+        dus.push(`${String(m).slice(0, 7)}-01`);
+        aus.push(`${String(m).slice(0, 7)}-31`);
+      }
+    });
+    (idx?.editions?.editions || []).forEach((e) => {
+      if (e?.dateDebut) dus.push(String(e.dateDebut).slice(0, 10));
+      if (e?.dateFin) aus.push(String(e.dateFin).slice(0, 10));
+    });
+    if (dus.length === 0) return null;
+    return {
+      du: dus.reduce((a, b) => (a < b ? a : b)),
+      au: aus.reduce((a, b) => (a > b ? a : b)),
+    };
+  }, [index]);
+
+  function consulterAnnee(a: string) {
+    const cand = { du: `${a}-01-01`, au: `${a}-12-31` };
+    setDu(cand.du);
+    setAu(cand.au);
+    void consulter(cand);
+  }
+
+  function consulterPeriodeComplete() {
+    if (!periodeComplete) return;
+    setDu(periodeComplete.du);
+    setAu(periodeComplete.au);
+    void consulter(periodeComplete);
+  }
+
   const validationSaisie = validerPeriodeFr(du, au);
   const alerteLongue =
     validationSaisie.ok &&
@@ -155,10 +210,19 @@ export default function BanquePage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Banque des accomplissements"
-        sousTitre="Consultation par période — lecture seule"
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Banque</p>
+          <h1 className="accueil-titre">Banque des accomplissements</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Consultation historique par période — trois sources indépendantes,
+            lecture seule.
+          </p>
+        </div>
+      </header>
 
       <div className="card">
         <p style={{ margin: 0, lineHeight: 1.5 }}>
@@ -168,6 +232,44 @@ export default function BanquePage() {
           Aucun total général n&apos;est calculé entre modules. Consultation en
           lecture seule.
         </p>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Index des périodes</h3>
+        {index ? (
+          <>
+            <div className="cahiers">
+              {periodeComplete && (
+                <div
+                  className="cahier-btn"
+                  onClick={consulterPeriodeComplete}
+                >
+                  <span className="nom">Toutes</span>
+                  <span className="complet">
+                    {periodeComplete.du} → {periodeComplete.au}
+                  </span>
+                </div>
+              )}
+              {anneesDisponibles.map((a) => (
+                <div
+                  key={a}
+                  className={"cahier-btn" + (du.startsWith(a) && au.startsWith(a) ? " active" : "")}
+                  onClick={() => consulterAnnee(a)}
+                >
+                  <span className="nom">{a}</span>
+                  <span className="complet">Consulter l'année</span>
+                </div>
+              ))}
+            </div>
+            {anneesDisponibles.length === 0 && !periodeComplete && (
+              <div className="empty" style={{ marginTop: 8 }}>
+                Aucune période disponible dans la base.
+              </div>
+            )}
+          </>
+        ) : (
+          <p style={{ color: "var(--muted)" }}>Chargement de l'index…</p>
+        )}
       </div>
 
       <div className="card">

@@ -172,7 +172,7 @@ export default async function Home() {
         </section>
       </header>
 
-      <section className="accueil-zone">
+      <section className="accueil-zone accueil-zone--gerer">
         <h2 className="accueil-rubrique">Gérer</h2>
         <div className="accueil-colonnes">
           {groupes.map((g) => (
@@ -184,7 +184,8 @@ export default async function Home() {
                     <Link href={item.href} className="accueil-rang">
                       <span className="accueil-num">{item.num}</span>
                       <span className="accueil-rang-txt">
-                        <strong>{item.titre}</strong> — {item.desc}
+                        <span className="accueil-rang-titre">{item.titre}</span>
+                        <span className="accueil-rang-desc">{item.desc}</span>
                       </span>
                     </Link>
                   </li>

@@ -2,25 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import { useParams, useRouter } from "next/navigation";
 import type { Zone } from "@/lib/types";
 import { cumulMin, fmtDuree, parseDureeMinutes, fmtMinToHeure, formatDureeInput } from "@/lib/calc";
 import { MOIS_FR, moisLabel } from "@/lib/mois";
 import { exportFicheZones } from "@/lib/excel";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 interface Val { p: string; t: string; }
-
-async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erreur serveur");
-  return data as T;
-}
 
 function anneesDispo(): string[] {
   const y = new Date().getFullYear();
@@ -44,6 +34,7 @@ export default function FicheMoisDetail() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [showMove, setShowMove] = useState(false);
   const [moveY, setMoveY] = useState(mois.slice(0, 4));
   const [moveM, setMoveM] = useState(mois.slice(5, 7));
@@ -152,6 +143,21 @@ export default function FicheMoisDetail() {
     catch (e) { setError("Échec export : " + (e as Error).message); }
   }
 
+  function exporterPdf() {
+    setExportingPdf(true);
+    const titrePrecedent = document.title;
+    document.title = `UMPJ-fiche-zones-${mois}`;
+    try {
+      window.print();
+    } catch (e) {
+      setError("Échec de l'export PDF : " + (e as Error).message);
+      toast((e as Error).message, "error");
+    } finally {
+      document.title = titrePrecedent;
+      setExportingPdf(false);
+    }
+  }
+
   async function supprimerZone(zoneId: string) {
     if (!(await confirm("Supprimer l'entrée de cette zone pour ce mois ?"))) return;
     try {
@@ -170,7 +176,7 @@ export default function FicheMoisDetail() {
     if (!(await confirm(`Supprimer la fiche de ${moisLabel(mois)} (toutes les zones) ?`)))
       return;
     try {
-      await api(`/api/zones/entrees?mois=${mois}`, { method: "DELETE" });
+      await api(`/api/zones/entrees?mois=${mois}&all=true`, { method: "DELETE" });
       toast("Fiche supprimée.", "success");
       router.push("/zones/fiches");
     } catch (e) {
@@ -181,14 +187,15 @@ export default function FicheMoisDetail() {
 
   function changeMois(part: "m" | "y", value: string) {
     const [y, m] = mois.split("-");
+    if (!y || !m) return;
     const ny = part === "y" ? value : y;
     const nm = part === "m" ? String(value).padStart(2, "0") : m;
     router.replace(`/zones/fiche/${ny}-${nm}`);
   }
 
   function openMove() {
-    setMoveY(mois.slice(0, 4));
-    setMoveM(mois.slice(5, 7));
+    setMoveY(mois.slice(0, 4) || String(new Date().getFullYear()));
+    setMoveM(mois.slice(5, 7) || "01");
     setShowMove(true);
   }
 
@@ -242,20 +249,53 @@ export default function FicheMoisDetail() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre={`Fiche complète — ${moisLabel(mois)}`}
-        sousTitre="Par zone / région spirituelle"
-        actions={
-          <Link href="/zones/fiches" className="link-btn">
-            &larr; Toutes les fiches
-          </Link>
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 14mm; }
+          @page {
+            @bottom-center {
+              content: "Page " counter(page) " / " counter(pages);
+              font-size: 8pt; color: #555;
+            }
+          }
+          .site-header, .back-link, .month-nav, .move-box, .form-actions,
+          .no-print { display: none !important; }
+          .wrap { max-width: none; padding: 0; margin: 0; overflow: visible; }
+          .card { border: none; box-shadow: none; padding: 0; }
+          .accueil-identite { margin-bottom: 10px; }
+          .accueil-logo { width: 40px; height: auto; }
+          .table-scroll { overflow: visible; }
+          table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+          th, td { border: 1px solid #999; padding: 4px 6px; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          tr { page-break-inside: avoid; }
+          .manquant { background: #fff7ed !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .warn { color: #c0392b; }
+          .note { font-size: 8.5pt; color: #555; }
+          .fiche-print-pied { display: block; margin-top: 12px; font-size: 8.5pt; color: #555; text-align: center; }
         }
-      />
+        .fiche-print-pied { display: none; }
+      `}</style>
+      <Link href="/zones/fiches" className="back-link">← Archives des fiches</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Zones</p>
+          <h1 className="accueil-titre">Fiche — {moisLabel(mois)}</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Saisie et consultation des heures de prière par zone.
+          </p>
+        </div>
+      </header>
+
+      {error && <div className="err" style={{ marginBottom: 12 }}>{error}</div>}
 
       <div className="card">
         <div className="month-nav">
           <select
-            value={Number(mois.slice(5, 7))}
+            value={Number(mois.slice(5, 7)) || 1}
             onChange={(e) => changeMois("m", e.target.value)}
             aria-label="Mois"
           >
@@ -264,7 +304,7 @@ export default function FicheMoisDetail() {
             ))}
           </select>
           <select
-            value={mois.slice(0, 4)}
+            value={mois.slice(0, 4) || String(new Date().getFullYear())}
             onChange={(e) => changeMois("y", e.target.value)}
             aria-label="Année"
           >
@@ -375,10 +415,15 @@ export default function FicheMoisDetail() {
             </button>
           )}
           <button className="btn secondary" type="button" onClick={exportFiche}>Export Excel</button>
+          <button className="btn secondary" type="button" onClick={exporterPdf} disabled={exportingPdf}>
+            {exportingPdf ? "Impression…" : "Exporter PDF"}
+          </button>
           <button className="btn danger" type="button" onClick={supprimerFiche}>Supprimer la fiche</button>
           {saved && <span className="note">Fiche enregistrée.</span>}
         </div>
-        {error && <div className="err">{error}</div>}
+      </div>
+      <div className="fiche-print-pied">
+        Document généré le {new Date().toLocaleDateString("fr-FR")} — UMPJ
       </div>
       {node}
     </main>

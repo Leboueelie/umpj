@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/components/nav/PageHeader";
 import { VueRapport } from "@/components/rapports/VueRapport";
 import { MODULES_RAPPORT, type RapportModule } from "@/lib/rapports";
 
@@ -80,8 +79,8 @@ export default function RapportModulePage() {
   if (!MODULES_RAPPORT[module]) {
     return (
       <main className="wrap">
-        <PageHeader titre="Rapport introuvable" />
-        <div className="err">
+        <Link href="/rapports" className="back-link">← Rapports</Link>
+        <div className="err" style={{ marginTop: 12 }}>
           Aucun rapport nommé « {module} ».{" "}
           <Link href="/rapports">Retour aux rapports</Link>
         </div>
@@ -91,15 +90,18 @@ export default function RapportModulePage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre={`Rapport — ${intitule}`}
-        sousTitre="Lecture seule — calculé à partir des données de la base"
-        actions={
-          <Link href="/rapports" className="link-btn">
-            &larr; Tous les rapports
-          </Link>
-        }
-      />
+      <Link href="/rapports" className="back-link">← Rapports</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Rapports</p>
+          <h1 className="accueil-titre">Rapport — {intitule}</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Lecture seule — calculé à partir des données de la base.
+          </p>
+        </div>
+      </header>
 
       {!sansPeriode && (
         <div className="card">

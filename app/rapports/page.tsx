@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/nav/PageHeader";
 import { getUtilisateurActuel } from "@/lib/auth";
 import { MODULES_RAPPORT } from "@/lib/rapports";
 
@@ -52,10 +51,18 @@ export default async function RapportsHubPage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Rapports"
-        sousTitre="Choisissez un module — chaque rapport indique sa source, sa période et ses limites"
-      />
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Rapports</p>
+          <h1 className="accueil-titre">Espace des rapports</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Choisissez un module — chaque rapport indique sa source, sa période et ses limites.
+          </p>
+        </div>
+      </header>
 
       <section className="home-section">
         <h3>Consultation agrégée</h3>
@@ -64,6 +71,31 @@ export default async function RapportsHubPage() {
             <strong>{BANQUE.titre}</strong>
             <span>{BANQUE.desc}</span>
           </Link>
+          {admin && (
+            <Link href="/editions/bilan" className="home-item">
+              <strong>Bilan des éditions</strong>
+              <span>
+                Éditions UMPJ : participation, sessions, temps investi et historique
+                comparatif.
+              </span>
+            </Link>
+          )}
+          {admin && (
+            <Link href="/rapports/consolide" className="home-item">
+              <strong>Rapport consolidé</strong>
+              <span>
+                Sélection multi-modules, période et génération PDF (lecture seule).
+              </span>
+            </Link>
+          )}
+          {admin && (
+            <Link href="/rapports/historique" className="home-item">
+              <strong>Historique des rapports</strong>
+              <span>
+                Rapports archivés : consultation, détails et téléchargement.
+              </span>
+            </Link>
+          )}
         </div>
       </section>
 

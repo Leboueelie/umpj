@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { SujetPriere, EquipePriere } from "@/lib/types";
 import { fmtDuree, fmtDate, normalizeDate } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 function formatDateInput(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 8);
@@ -19,16 +19,6 @@ function formatDateInput(raw: string): string {
 function isoToDisplay(iso: string): string {
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
-}
-
-async function api<T = any>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Erreur serveur");
-  return data as T;
 }
 
 export default function EquipesPrierePage() {
@@ -204,11 +194,19 @@ export default function EquipesPrierePage() {
   }, [equipes]);
 
   return (
-    <div className="wrap">
-      <PageHeader
-        titre="Équipes de prière"
-        sousTitre="Gestion des sujets de prière et équipes par zone"
-      />
+    <main className="wrap">
+      <Link href="/" className="back-link">← Accueil</Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Équipes de prière</p>
+          <h1 className="accueil-titre">Équipes de prière</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            Gestion des sujets de prière et équipes par zone
+          </p>
+        </div>
+      </header>
 
       <div className="card">
         <h3>Sujets de prière</h3>
@@ -346,7 +344,7 @@ export default function EquipesPrierePage() {
                         <th>Période</th>
                         <th>Temps mis</th>
                         <th>Nbre de pers</th>
-                        <th>Volume</th>
+                        <th>Volume (h-pers.)</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -395,6 +393,6 @@ export default function EquipesPrierePage() {
         </>
       )}
       {node}
-    </div>
+    </main>
   );
 }

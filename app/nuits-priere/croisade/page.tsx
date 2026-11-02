@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/nav/PageHeader";
 import type { CroisadeJeunePriere } from "@/lib/types";
 import {
   fmtDuree,
@@ -14,6 +13,7 @@ import {
   todayDisplay,
 } from "@/lib/calc";
 import { useFeedback } from "@/components/Feedback";
+import { api } from "@/lib/api";
 
 function isoDay(raw: string): string {
   return raw.split("T")[0];
@@ -75,9 +75,7 @@ export default function CroisadePage() {
 
   async function loadListe() {
     try {
-      const r = await fetch("/api/croisade");
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      const data = await api<CroisadeJeunePriere[]>("/api/croisade");
       setListe(Array.isArray(data) ? data : []);
     } catch (e) {
       setError((e as Error).message);
@@ -128,10 +126,14 @@ export default function CroisadePage() {
       }
     }
 
+    if (effectifApercu <= 0) {
+      setError("L'effectif total doit être strictement positif (au moins un rôle > 0).");
+      return;
+    }
+
     try {
-      const r = await fetch("/api/croisade", {
+      await api("/api/croisade", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: dateNorm,
           heureDebut: heureDebutNorm,
@@ -141,8 +143,6 @@ export default function CroisadePage() {
           ...Object.fromEntries(ROLE_KEYS.map((k) => [k, roleValue(k)])),
         }),
       });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
 
       setForm(emptyForm());
       toast("Session de croisade ajoutée.", "success");
@@ -157,9 +157,7 @@ export default function CroisadePage() {
   async function deleteLigne(id: string) {
     if (!(await confirm("Supprimer cette session de croisade ?"))) return;
     try {
-      const r = await fetch(`/api/croisade/${id}`, { method: "DELETE" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
+      await api(`/api/croisade/${id}`, { method: "DELETE" });
       toast("Session supprimée.", "success");
       await loadListe();
     } catch (e) {
@@ -194,15 +192,20 @@ export default function CroisadePage() {
 
   return (
     <main className="wrap">
-      <PageHeader
-        titre="Croisade de Jeûne et Prière pour le Ministère"
-        sousTitre={`${liste.length} enregistrement(s)`}
-        actions={
-          <Link href="/nuits-priere" className="link-btn">
-            &larr; Nuits de Prière
-          </Link>
-        }
-      />
+      <Link href="/nuits-priere" className="back-link">
+        ← Nuits de Prière
+      </Link>
+      <header className="accueil-identite" style={{ marginBottom: 18 }}>
+        <img src="/logo.png" alt="" className="accueil-logo" />
+        <div>
+          <p className="accueil-kicker">Nuits de Prière</p>
+          <h1 className="accueil-titre">Croisade de Jeûne et Prière pour le Ministère</h1>
+          <span className="accueil-filet" aria-hidden="true" />
+          <p className="accueil-chapo">
+            {`${liste.length} enregistrement(s)`}
+          </p>
+        </div>
+      </header>
 
       {error && <div className="err">{error}</div>}
 
