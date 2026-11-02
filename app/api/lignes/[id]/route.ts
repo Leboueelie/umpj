@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { tempsMisMin } from "@/lib/calc";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,7 +12,11 @@ export async function PUT(req: Request, { params }: Params) {
   if (acces instanceof NextResponse) return acces;
 
   const { id } = await params;
-  const b = await req.json().catch(() => ({}));
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const b = (lecture.body ?? {}) as any;
   const date = (b.date ?? "").toString();
   const heureDebut = (b.heureDebut ?? "").toString();
   const heureFin = (b.heureFin ?? "").toString();

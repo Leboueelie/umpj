@@ -1,4 +1,11 @@
-import type { ImportedEdition } from "@/lib/excel";
+import type { ImportedEdition } from "./excel.ts";
+import { ImportValidationError } from "./excel.ts";
+
+export { ImportValidationError };
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+const MAX_PDF_PAGES = 100;
+const MAX_PDF_TEXT_LENGTH = 1_000_000; // 1 Mo de texte
 
 const MOIS: Record<string, number> = {
   JANVIER: 1, FEVRIER: 2, MARS: 3, AVRIL: 4, MAI: 5, JUIN: 6,
@@ -35,11 +42,14 @@ function normalize(t: string): string {
   return t;
 }
 
-async function extractPdfText(buf: Buffer): Promise<string> {
+async function extractPdfText(buf: Buffer): Promise<{ text: string; numpages: number }> {
   const mod = await import("pdf-parse/lib/pdf-parse.js");
   const pdfParse = (mod as any).default || mod;
   const data = await pdfParse(buf);
-  return typeof data?.text === "string" ? data.text : "";
+  return {
+    text: typeof data?.text === "string" ? data.text : "",
+    numpages: typeof data?.numpages === "number" ? data.numpages : 0,
+  };
 }
 
 function findCount(t: string, patterns: RegExp[]): number {
@@ -65,8 +75,13 @@ function listItems(block: string): string[] {
 }
 
 export async function parseEditionPdfBuffer(buf: Buffer): Promise<ImportedEdition> {
-  const raw = await extractPdfText(buf);
+  if (buf.length > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+
+  const { text: raw, numpages } = await extractPdfText(buf);
+
+  if (numpages > MAX_PDF_PAGES) throw new ImportValidationError(`Maximum ${MAX_PDF_PAGES} pages.`);
   const t = normalize(raw);
+  if (t.length > MAX_PDF_TEXT_LENGTH) throw new ImportValidationError(`Texte extrait trop volumineux (max ${MAX_PDF_TEXT_LENGTH}).`);
 
   // Numero + reference
   const numM = t.match(/COMPTE RENDU\s+(\d+)[eè]?\s*EDITION/i) || t.match(/(\d+)[eè]?\s*EDITION/i);
@@ -86,10 +101,23 @@ export async function parseEditionPdfBuffer(buf: Buffer): Promise<ImportedEditio
     mo = MOIS[(mSimple[2] || "").toUpperCase()] || 0; year = num(mSimple[3]);
   }
   const y = year < 100 ? 2000 + year : year;
+function estDateIsoCalendaireLocal(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  if (m < 1 || m > 12 || d < 1) return false;
+  const bissextile = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const joursMois = [31, bissextile ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return d <= joursMois[m - 1];
+}
+
   const disp = mo ? MOIS_DISPLAY_NUM[mo] : "";
-  const libellePeriode = mo ? (day1 === day2 ? `${day1} ${disp} ${y}` : `${day1} au ${disp} ${y}`) : "";
-  const dateDebut = mo ? `${y}-${pad(mo)}-${pad(day1)}` : "";
-  const dateFin = mo ? `${y}-${pad(mo)}-${pad(day2)}` : "";
+  const dateDebutBrute = mo ? `${y}-${pad(mo)}-${pad(day1)}` : "";
+  const dateFinBrute = mo ? `${y}-${pad(mo)}-${pad(day2)}` : "";
+  const dateDebut = estDateIsoCalendaireLocal(dateDebutBrute) ? dateDebutBrute : "";
+  const dateFin = estDateIsoCalendaireLocal(dateFinBrute) ? dateFinBrute : "";
+  const libellePeriode = dateDebut && dateFin
+    ? (day1 === day2 ? `${day1} ${disp} ${y}` : `${day1} au ${disp} ${y}`)
+    : "";
 
   // Section I : compteurs (format "Nombre de X : N" ou "X : N", tolerant a la mise en page)
   const delegationsPresentes = findCount(t, [/D[ée]l[ée]gations?\s*pr[ée]sentes?\D{0,25}?(\d+)/i]);
@@ -148,10 +176,14 @@ export async function parseEditionPdfBuffer(buf: Buffer): Promise<ImportedEditio
     });
   }
 
-  // Heures investies : valeur explicite sinon somme des sessions
+  // Heures investies : toujours calculées à partir de la somme des sessions.
+  // La valeur déclarée dans le PDF (si présente) est conservée séparément
+  // pour signaler une incohérence, mais ne remplace jamais le calcul.
   const hm = t.match(/NOMBRE\s*D['’]?HEURES\s*INVESTIES\s*[:\-]?\s*(\d+)\s*H\s*(\d+)/i);
-  const heuresInvesties = hm ? parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10)
-    : sessions.reduce((a, s) => a + (s.dureeMinutes || 0), 0);
+  const heuresInvestiesDeclarees = hm
+    ? parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10)
+    : undefined;
+  const heuresInvesties = sessions.reduce((a, s) => a + (s.dureeMinutes || 0), 0);
 
   return {
     numero,
@@ -167,6 +199,7 @@ export async function parseEditionPdfBuffer(buf: Buffer): Promise<ImportedEditio
     epousesAnciensAbidjan,
     moyenneParticipation,
     heuresInvesties,
+    heuresInvestiesDeclarees,
     delegationsExterieures,
     abidjanZones,
     interieurLocalites,

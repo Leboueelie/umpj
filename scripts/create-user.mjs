@@ -5,6 +5,10 @@
 // - Aucun identifiant par défaut ; le mot de passe est demandé sans écho (TTY).
 // - Refuse les doublons ; le premier compte est forcé en ADMIN.
 // - N'écrit qu'après confirmation explicite de l'opérateur (hôte affiché).
+//
+// Authentification V2 : le nom complet normalisé est l'identifiant de connexion.
+// La normalisation ci-dessous DOIT rester identique à lib/normalisation.ts
+// (trim + collapse des espaces + minuscules, accents conservés).
 
 import fs from "fs";
 import readline from "readline";
@@ -81,6 +85,12 @@ async function questionMasquee(q) {
   });
 }
 
+// Normalisation V2 (identique à lib/normalisation.ts#normaliserNom).
+function normaliserNom(nom) {
+  if (typeof nom !== "string") return "";
+  return nom.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 const { Pool } = await import("pg");
 const pool = new Pool({ connectionString: DATABASE_URL, family: 4 });
 
@@ -101,14 +111,39 @@ async function main() {
     console.log(`${nbComptes} compte(s) existant(s), dont ${nbAdmins} administrateur(s) actif(s).`);
   }
 
+  // Nom complet (identifiant de connexion V2).
+  const nomBrut = await question("Nom complet : ");
+  const nomAffiche = nomBrut.trim().replace(/\s+/g, " ");
+  const nomNormalise = nomAffiche.toLowerCase();
+  if (!nomAffiche) {
+    console.error("Le nom complet est obligatoire.");
+    process.exit(1);
+  }
+  if (nomAffiche.length > 200) {
+    console.error("Nom complet trop long (200 caractères maximum).");
+    process.exit(1);
+  }
+
+  const doublonNom = await pool.query(
+    `SELECT 1 FROM "Utilisateur"
+     WHERE lower(regexp_replace(trim("nom"), '\\s+', ' ', 'g')) = $1`,
+    [nomNormalise]
+  );
+  if (doublonNom.rowCount) {
+    console.error(
+      "Un compte existe déjà avec ce nom (ou une variante d'espacement/casse)."
+    );
+    process.exit(1);
+  }
+
   const email = (await question("Email : ")).trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     console.error("Email invalide.");
     process.exit(1);
   }
 
-  const doublon = await pool.query(`SELECT 1 FROM "Utilisateur" WHERE email = $1`, [email]);
-  if (doublon.rowCount) {
+  const doublonEmail = await pool.query(`SELECT 1 FROM "Utilisateur" WHERE email = $1`, [email]);
+  if (doublonEmail.rowCount) {
     console.error(
       "Un compte existe déjà avec cet email. Utilisez /admin/utilisateurs (ADMIN) pour le réinitialiser."
     );
@@ -133,7 +168,7 @@ async function main() {
   }
 
   const confirme = (
-    await question(`Confirmer la création de ${email} (${role}) sur ${host} ? (oui/non) : `)
+    await question(`Confirmer la création de ${nomAffiche} (${email}, ${role}) sur ${host} ? (oui/non) : `)
   )
     .trim()
     .toLowerCase();
@@ -143,17 +178,16 @@ async function main() {
   }
 
   const hash = hashPassword(mdp1);
-  await pool.query(`INSERT INTO "Utilisateur" (email, hash, role) VALUES ($1, $2, $3)`, [
-    email,
-    hash,
-    role,
-  ]);
+  await pool.query(
+    `INSERT INTO "Utilisateur" (email, nom, hash, role) VALUES ($1, $2, $3, $4)`,
+    [email, nomAffiche, hash, role]
+  );
   await pool.query(
     `INSERT INTO "JournalAdmin" (acteur, action, cible, detail)
      VALUES ($1, 'creation_script', $2, $3)`,
-    ["script-create-user", email, JSON.stringify({ role, hote: host })]
+    ["script-create-user", email, JSON.stringify({ nom: nomAffiche, role, hote: host })]
   );
-  console.log(`Compte créé : ${email} (${role}).`);
+  console.log(`Compte créé : ${nomAffiche} (${email}, ${role}).`);
   console.log("Le mot de passe n'a ni été affiché ni été journalisé.");
 }
 

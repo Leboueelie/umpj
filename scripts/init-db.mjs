@@ -223,6 +223,11 @@ CREATE TABLE IF NOT EXISTS "Edition" (
   CONSTRAINT "Edition_pkey" PRIMARY KEY ("id")
 );
 
+DO $$ BEGIN
+  ALTER TABLE "Edition" ADD CONSTRAINT "Edition_numero_key" UNIQUE ("numero");
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS "SujetPriere" (
   "id" TEXT NOT NULL,
   "nom" TEXT NOT NULL,
@@ -333,7 +338,7 @@ CREATE INDEX IF NOT EXISTS "SiegePriere_date_idx" ON "SiegePriere"("date");
 
 CREATE TABLE IF NOT EXISTS "Utilisateur" (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
-  email TEXT NOT NULL,
+  email TEXT,
   hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'LECTEUR',
   actif BOOLEAN NOT NULL DEFAULT true,
@@ -344,6 +349,25 @@ CREATE TABLE IF NOT EXISTS "Utilisateur" (
   CONSTRAINT "Utilisateur_email_key" UNIQUE ("email"),
   CONSTRAINT "Utilisateur_role_check" CHECK (role IN ('ADMIN','LECTEUR'))
 );
+
+-- Colonne nom (FRONT-39/FRONT-41) : nullable pour préserver les comptes existants.
+DO $$ BEGIN
+  ALTER TABLE "Utilisateur" ADD COLUMN "nom" TEXT;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+
+-- L'e-mail n'est plus obligatoire (FRONT-41) : conservé pour communications/audit.
+DO $$ BEGIN
+  ALTER TABLE "Utilisateur" ALTER COLUMN "email" DROP NOT NULL;
+EXCEPTION WHEN others THEN NULL;
+END $$;
+
+-- Index unique fonctionnel sur le nom normalisé (trim + collapse espaces + minuscules, accents conservés).
+DO $$ BEGIN
+  CREATE UNIQUE INDEX "Utilisateur_nom_normalise_key"
+    ON "Utilisateur" (lower(regexp_replace(trim("nom"), '\s+', ' ', 'g')));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS "TentativeConnexion" (
   cle TEXT NOT NULL,
@@ -362,8 +386,60 @@ CREATE TABLE IF NOT EXISTS "JournalAdmin" (
   detail JSONB NOT NULL DEFAULT '{}',
   CONSTRAINT "JournalAdmin_pkey" PRIMARY KEY ("id")
 );
-`;
 
+-- RapportGenere (P4.1) : historique des rapports consolidés.
+CREATE TABLE IF NOT EXISTS "RapportGenere" (
+  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "titre" TEXT NOT NULL,
+  "typeRapport" TEXT NOT NULL,
+  "modules" TEXT[] NOT NULL,
+  "periodeDu" DATE,
+  "periodeAu" DATE,
+  "filtres" JSONB NOT NULL DEFAULT '{}',
+  "dateGeneration" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "auteurId" UUID,
+  "auteurLibelle" TEXT NOT NULL,
+  "snapshot" JSONB NOT NULL,
+  "schemaVersion" TEXT NOT NULL DEFAULT '1.0',
+  "format" TEXT NOT NULL,
+  "pdfData" BYTEA,
+  "pdfTaille" INTEGER,
+  "pdfSha256" TEXT,
+  "xlsxData" BYTEA,
+  "xlsxTaille" INTEGER,
+  "xlsxSha256" TEXT,
+  "statut" TEXT NOT NULL DEFAULT 'genere',
+  CONSTRAINT "RapportGenere_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "RapportGenere_typeRapport_check" CHECK ("typeRapport" IN ('consolide')),
+  CONSTRAINT "RapportGenere_format_check" CHECK ("format" IN ('pdf', 'xlsx', 'both')),
+  CONSTRAINT "RapportGenere_statut_check" CHECK ("statut" = 'genere'),
+  CONSTRAINT "RapportGenere_auteurId_fkey" FOREIGN KEY ("auteurId")
+    REFERENCES "Utilisateur" ("id") ON DELETE SET NULL,
+  CONSTRAINT "RapportGenere_format_fichiers_check" CHECK (
+    ("format" = 'pdf'  AND "pdfData" IS NOT NULL AND "xlsxData" IS NULL) OR
+    ("format" = 'xlsx' AND "xlsxData" IS NOT NULL AND "pdfData" IS NULL) OR
+    ("format" = 'both' AND "pdfData" IS NOT NULL AND "xlsxData" IS NOT NULL)
+  ),
+  CONSTRAINT "RapportGenere_pdf_meta_check" CHECK (
+    ("pdfData" IS NULL AND "pdfTaille" IS NULL AND "pdfSha256" IS NULL) OR
+    ("pdfData" IS NOT NULL AND "pdfTaille" IS NOT NULL AND "pdfSha256" IS NOT NULL)
+  ),
+  CONSTRAINT "RapportGenere_xlsx_meta_check" CHECK (
+    ("xlsxData" IS NULL AND "xlsxTaille" IS NULL AND "xlsxSha256" IS NULL) OR
+    ("xlsxData" IS NOT NULL AND "xlsxTaille" IS NOT NULL AND "xlsxSha256" IS NOT NULL)
+  )
+);
+
+CREATE INDEX IF NOT EXISTS "RapportGenere_dateGeneration_idx"
+  ON "RapportGenere" ("dateGeneration" DESC, "id");
+CREATE INDEX IF NOT EXISTS "RapportGenere_auteurId_idx"
+  ON "RapportGenere" ("auteurId");
+CREATE INDEX IF NOT EXISTS "RapportGenere_modules_idx"
+  ON "RapportGenere" USING GIN ("modules");
+CREATE INDEX IF NOT EXISTS "RapportGenere_periode_idx"
+  ON "RapportGenere" ("periodeDu", "periodeAu");
+
+`;
 async function main() {
   await pool.query(sql);
 

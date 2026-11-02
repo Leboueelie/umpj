@@ -3,15 +3,30 @@ import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { tempsMisMin, normalizeHeure, normalizeDate } from "@/lib/calc";
 import type { ImportedCahier } from "@/lib/excel";
+import { validerImportCahiers } from "@/lib/import-limits";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function POST(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json().catch(() => ({}));
-  const cahiers = (body.cahiers ?? []) as ImportedCahier[];
+  const tailleErreur = verifierTailleDeclaree(req, LIMITE_JSON);
+  if (tailleErreur) return tailleErreur;
+
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = lecture.body as Record<string, unknown>;
+  const cahiers = (body?.cahiers ?? []) as ImportedCahier[];
   if (!Array.isArray(cahiers) || cahiers.length === 0) {
     return NextResponse.json({ error: "Aucun cahier à importer." }, { status: 400 });
+  }
+
+  const validation = validerImportCahiers(cahiers);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.erreur }, { status: 400 });
   }
 
   let cahiersCrees = 0;

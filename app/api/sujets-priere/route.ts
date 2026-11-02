@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import type { SujetPriere } from "@/lib/types";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET() {
   const acces = await requireAdmin();
@@ -18,7 +20,11 @@ export async function POST(req: NextRequest) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json();
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const { nom } = body;
 
   if (!nom?.trim()) {
@@ -27,6 +33,12 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  if (nom.trim().length > 200)
+    return NextResponse.json(
+      { error: "Le nom du sujet est trop long (200 caractères maximum)." },
+      { status: 400 }
+    );
 
   const id = randomUUID();
   await pool.query(
@@ -53,6 +65,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "ID requis" }, { status: 400 });
   }
 
-  await pool.query(`DELETE FROM "SujetPriere" WHERE id = $1`, [id]);
+  const r = await pool.query(`DELETE FROM "SujetPriere" WHERE id = $1`, [id]);
+  if (r.rowCount === 0)
+    return NextResponse.json({ error: "Sujet introuvable." }, { status: 404 });
   return NextResponse.json({ success: true });
 }

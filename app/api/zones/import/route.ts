@@ -2,16 +2,42 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { parseDureeMinutes } from "@/lib/calc";
+import { validerImportZones } from "@/lib/import-limits";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function POST(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json().catch(() => ({}));
-  const mois = (body.mois ?? "").toString().trim();
-  const lignes = Array.isArray(body.lignes) ? body.lignes : [];
+  const tailleErreur = verifierTailleDeclaree(req, LIMITE_JSON);
+  if (tailleErreur) return tailleErreur;
+
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = lecture.body as Record<string, unknown>;
+  const mois = (body?.mois ?? "").toString().trim();
+  const lignes = Array.isArray(body?.lignes) ? body.lignes : [];
   if (!/^\d{4}-\d{2}$/.test(mois))
     return NextResponse.json({ error: "mois invalide (YYYY-MM)." }, { status: 400 });
+
+  const validation = validerImportZones(mois, lignes);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.erreur }, { status: 400 });
+  }
+
+  // Validation des participants avant toute écriture.
+  for (const l of lignes) {
+    const raw = l.participants;
+    if (raw !== undefined && raw !== null && raw !== "") {
+      const v = Number(raw);
+      if (!Number.isInteger(v) || v < 0) {
+        return NextResponse.json({ error: "Nombre de participants invalide." }, { status: 400 });
+      }
+    }
+  }
 
   let zonesCrees = 0;
   let creees = 0;
@@ -39,7 +65,8 @@ export async function POST(req: Request) {
         zoneId = ins.rows[0].id;
         zonesCrees++;
       }
-      const participants = parseInt(l.participants, 10);
+      const participantsRaw = l.participants;
+      const participants = participantsRaw === undefined || participantsRaw === null || participantsRaw === "" ? 0 : Number(participantsRaw);
       const tempsMis = parseDureeMinutes(String(l.tempsMis ?? ""));
       const duree = tempsMis;
       const aParticipants = participants >= 1;

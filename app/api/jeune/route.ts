@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { estPdf } from "@/lib/fichiers";
+import { verifierTailleDeclaree, LIMITE_PDF } from "@/lib/body-limit";
+import { lireBufferBorne } from "@/lib/body-stream";
 import type { Jeune } from "@/lib/types";
 
 const VALID_CATEGORIES = ["nation", "debut-mois", "dirigeants", "crppf", "ministere"];
@@ -32,7 +34,24 @@ export async function POST(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const formData = await req.formData();
+  const tailleErreur = verifierTailleDeclaree(req, LIMITE_PDF);
+  if (tailleErreur) return tailleErreur;
+
+  const bodyBuffer = await lireBufferBorne(req, LIMITE_PDF);
+  if (bodyBuffer === null) {
+    return NextResponse.json({ error: "Le corps de la requête dépasse la taille maximale autorisée." }, { status: 413 });
+  }
+  const form = new Request(req.url, {
+    method: "POST",
+    body: new Uint8Array(bodyBuffer),
+    headers: { "Content-Type": req.headers.get("content-type") || "multipart/form-data" },
+  });
+  let formData: FormData;
+  try {
+    formData = await form.formData();
+  } catch {
+    return NextResponse.json({ error: "Corps de requête invalide." }, { status: 400 });
+  }
   const file = formData.get("file") as File | null;
   const categorie = (formData.get("categorie") ?? "").toString().trim();
 

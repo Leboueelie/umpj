@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { parseDureeMinutes } from "@/lib/calc";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET(req: Request) {
   const acces = await requireAdmin();
@@ -9,7 +11,21 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const mois = searchParams.get("mois");
-  if (!mois) return NextResponse.json({ error: "mois requis" }, { status: 400 });
+  const zoneId = searchParams.get("zoneId");
+  if (!mois && !zoneId)
+    return NextResponse.json({ error: "mois ou zoneId requis" }, { status: 400 });
+  if (!mois && zoneId) {
+    // Historique complet d'une zone (consultation archives), du plus récent au plus ancien.
+    const r = await pool.query(
+      `SELECT e.*, z."nom" AS "zoneNom"
+       FROM "EntreeZone" e
+       JOIN "Zone" z ON z."id" = e."zoneId"
+       WHERE e."zoneId" = $1
+       ORDER BY e."mois" DESC`,
+      [zoneId]
+    );
+    return NextResponse.json(r.rows);
+  }
   const r = await pool.query(
     `SELECT e.*, z."nom" AS "zoneNom"
      FROM "EntreeZone" e
@@ -28,6 +44,7 @@ export async function DELETE(req: Request) {
   const { searchParams } = new URL(req.url);
   const mois = searchParams.get("mois");
   const zoneId = searchParams.get("zoneId");
+  const all = searchParams.get("all");
   if (!mois || !/^\d{4}-\d{2}$/.test(mois))
     return NextResponse.json({ error: "mois invalide (YYYY-MM)." }, { status: 400 });
 
@@ -38,9 +55,14 @@ export async function DELETE(req: Request) {
       [zoneId, mois]
     );
     supprimees = d.rowCount ?? 0;
-  } else {
+  } else if (all === "true") {
     const d = await pool.query(`DELETE FROM "EntreeZone" WHERE "mois"=$1`, [mois]);
     supprimees = d.rowCount ?? 0;
+  } else {
+    return NextResponse.json(
+      { error: "Précisez zoneId ou all=true pour la suppression." },
+      { status: 400 }
+    );
   }
   return NextResponse.json({ supprimees });
 }
@@ -49,11 +71,28 @@ export async function POST(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json().catch(() => ({}));
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const mois = (body.mois ?? "").toString().trim();
   const entrees = Array.isArray(body.entrees) ? body.entrees : [];
   if (!/^\d{4}-\d{2}$/.test(mois))
     return NextResponse.json({ error: "mois invalide (YYYY-MM)." }, { status: 400 });
+
+  // Validation des participants avant toute écriture.
+  for (const e of entrees) {
+    const zoneId = (e.zoneId ?? "").toString();
+    if (!zoneId) continue;
+    const raw = e.participants;
+    if (raw !== undefined && raw !== null && raw !== "") {
+      const v = Number(raw);
+      if (!Number.isInteger(v) || v < 0) {
+        return NextResponse.json({ error: "Nombre de participants invalide." }, { status: 400 });
+      }
+    }
+  }
 
   let creees = 0;
   let maj = 0;
@@ -65,7 +104,8 @@ export async function POST(req: Request) {
     for (const e of entrees) {
       const zoneId = (e.zoneId ?? "").toString();
       if (!zoneId) continue;
-      const participants = parseInt(e.participants, 10);
+      const participantsRaw = e.participants;
+      const participants = participantsRaw === undefined || participantsRaw === null || participantsRaw === "" ? 0 : Number(participantsRaw);
       const tempsMis = parseDureeMinutes((e.tempsMis ?? "").toString()); // saisie directe (minutes)
       const duree = tempsMis;
       const aParticipants = participants >= 1;

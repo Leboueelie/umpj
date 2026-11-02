@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET() {
   const acces = await requireAdmin();
@@ -19,7 +21,11 @@ export async function PUT(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json().catch(() => ({}));
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const updates: [string, number][] = [];
   if (typeof body.chambresAbidjan === "number") updates.push(["chambresAbidjan", body.chambresAbidjan]);
   if (typeof body.chambresInterieur === "number") updates.push(["chambresInterieur", body.chambresInterieur]);

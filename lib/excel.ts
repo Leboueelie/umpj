@@ -1,5 +1,20 @@
 import type { Cahier, Ligne, Zone } from "@/lib/types";
-import { toMin, tempsMisMin, cumulMin, fmtDate, parseDureeMinutes, fmtMinToHeure } from "@/lib/calc";
+import { toMin, tempsMisMin, cumulMin, fmtDate, parseDureeMinutes, fmtMinToHeure } from "./calc.ts";
+
+// ---- Limites de parsing (AUD-003.3) ----
+
+export class ImportValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ImportValidationError";
+  }
+}
+
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+export const MAX_SHEETS = 10;
+export const MAX_ROWS_PER_SHEET = 10000;
+export const MAX_CELLS_TOTAL = 100000;
+export const MAX_CELL_LENGTH = 10000;
 
 const TIME_FMT = "hh:mm";
 const DUREE_FMT = "[h]\\hmm";
@@ -138,19 +153,32 @@ export interface ImportedCahier {
 }
 
 export async function parseImportFile(file: File): Promise<ImportedCahier[]> {
+  if (file.size > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+
   const XLSX = await import("xlsx");
   const isCsv = file.name.toLowerCase().endsWith(".csv");
-  const wb = isCsv
-    ? XLSX.read(await file.text(), { type: "string" })
-    : XLSX.read(await file.arrayBuffer(), { type: "array" });
+  let wb;
+  if (isCsv) {
+    const text = await file.text();
+    if (Buffer.byteLength(text, "utf8") > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(text, { type: "string" });
+  } else {
+    const buffer = await file.arrayBuffer();
+    if (buffer.byteLength > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(buffer, { type: "array" });
+  }
+
+  if (wb.SheetNames.length > MAX_SHEETS) throw new ImportValidationError(`Maximum ${MAX_SHEETS} feuilles.`);
 
   const out: ImportedCahier[] = [];
+  let totalCells = 0;
   for (const sheetName of wb.SheetNames) {
     if (sheetName.toLowerCase() === "récapitulatif") continue;
     const ws = wb.Sheets[sheetName];
     if (!ws) continue;
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true }) as any[][];
     if (rows.length < 2) continue;
+    if (rows.length > MAX_ROWS_PER_SHEET) throw new ImportValidationError(`Maximum ${MAX_ROWS_PER_SHEET} lignes par feuille.`);
 
     let headerIdx = -1;
     for (let i = 0; i < Math.min(rows.length, 5); i++) {
@@ -184,8 +212,15 @@ export async function parseImportFile(file: File): Promise<ImportedCahier[]> {
       const fin = parseTime(row[ciFin]);
       const nb = parseInt(String(row[ciParticipant] ?? "1"), 10) || 1;
       if (!date || !fin) continue;
+      // Vérification de la longueur des cellules.
+      for (const cell of row) {
+        const cellStr = String(cell ?? "");
+        if (cellStr.length > MAX_CELL_LENGTH) throw new ImportValidationError(`Cellule trop longue (max ${MAX_CELL_LENGTH}).`);
+        totalCells++;
+      }
       lignes.push({ date, heureDebut: debut, heureFin: fin, nombrePersonnes: nb });
     }
+    if (totalCells > MAX_CELLS_TOTAL) throw new ImportValidationError(`Maximum ${MAX_CELLS_TOTAL} cellules au total.`);
     if (lignes.length) out.push({ nom: sheetName, lignes });
   }
   return out;
@@ -294,19 +329,32 @@ export interface ImportedFicheZone {
 }
 
 export async function parseImportZonesFile(file: File): Promise<ImportedFicheZone[]> {
+  if (file.size > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+
   const XLSX = await import("xlsx");
   const isCsv = file.name.toLowerCase().endsWith(".csv");
-  const wb = isCsv
-    ? XLSX.read(await file.text(), { type: "string" })
-    : XLSX.read(await file.arrayBuffer(), { type: "array" });
+  let wb;
+  if (isCsv) {
+    const text = await file.text();
+    if (Buffer.byteLength(text, "utf8") > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(text, { type: "string" });
+  } else {
+    const buffer = await file.arrayBuffer();
+    if (buffer.byteLength > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(buffer, { type: "array" });
+  }
+
+  if (wb.SheetNames.length > MAX_SHEETS) throw new ImportValidationError(`Maximum ${MAX_SHEETS} feuilles.`);
 
   const out: ImportedFicheZone[] = [];
+  let totalCells = 0;
   for (const sheetName of wb.SheetNames) {
     if (sheetName.toLowerCase() === "récapitulatif") continue;
     const ws = wb.Sheets[sheetName];
     if (!ws) continue;
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true }) as any[][];
     if (rows.length < 2) continue;
+    if (rows.length > MAX_ROWS_PER_SHEET) throw new ImportValidationError(`Maximum ${MAX_ROWS_PER_SHEET} lignes par feuille.`);
 
     let headerIdx = -1;
     for (let i = 0; i < Math.min(rows.length, 6); i++) {
@@ -333,8 +381,14 @@ export async function parseImportZonesFile(file: File): Promise<ImportedFicheZon
       if (/^total /i.test(zone)) continue; // saute la ligne "Total national"
       const tempsMis = ciTm >= 0 ? parseDureeCell(row[ciTm]) : "";
       const participants = ciPart >= 0 ? parseInt(String(row[ciPart] ?? "0"), 10) || 0 : 0;
+      for (const cell of row) {
+        const cellStr = String(cell ?? "");
+        if (cellStr.length > MAX_CELL_LENGTH) throw new ImportValidationError(`Cellule trop longue (max ${MAX_CELL_LENGTH}).`);
+        totalCells++;
+      }
       out.push({ zone, participants, tempsMis });
     }
+    if (totalCells > MAX_CELLS_TOTAL) throw new ImportValidationError(`Maximum ${MAX_CELLS_TOTAL} cellules au total.`);
   }
   return out;
 }
@@ -355,6 +409,9 @@ export interface ImportedEdition {
   epousesAnciensAbidjan: number;
   moyenneParticipation: number;
   heuresInvesties?: number;
+  // Valeur explicitement déclarée (PDF uniquement) — sert à signaler une
+  // incohérence avec la somme des sessions. Jamais utilisée comme résultat.
+  heuresInvestiesDeclarees?: number;
   delegationsExterieures: string[];
   abidjanZones: string[];
   interieurLocalites: string[];
@@ -374,11 +431,22 @@ function numOr(v: any, d = 0): number {
 }
 
 export async function parseEditionFile(file: File): Promise<ImportedEdition> {
+  if (file.size > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+
   const XLSX = await import("xlsx");
   const isCsv = file.name.toLowerCase().endsWith(".csv");
-  const wb = isCsv
-    ? XLSX.read(await file.text(), { type: "string" })
-    : XLSX.read(await file.arrayBuffer(), { type: "array" });
+  let wb;
+  if (isCsv) {
+    const text = await file.text();
+    if (Buffer.byteLength(text, "utf8") > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(text, { type: "string" });
+  } else {
+    const buffer = await file.arrayBuffer();
+    if (buffer.byteLength > MAX_FILE_SIZE) throw new ImportValidationError("Fichier trop volumineux (max 10 Mo).");
+    wb = XLSX.read(buffer, { type: "array" });
+  }
+
+  if (wb.SheetNames.length > MAX_SHEETS) throw new ImportValidationError(`Maximum ${MAX_SHEETS} feuilles.`);
 
   const get = (name: string) => wb.Sheets[name];
 
@@ -387,6 +455,17 @@ export async function parseEditionFile(file: File): Promise<ImportedEdition> {
   const map: Record<string, any> = {};
   if (ed) {
     const rows = XLSX.utils.sheet_to_json(ed, { header: 1, defval: "", raw: false }) as any[][];
+    if (rows.length > MAX_ROWS_PER_SHEET) throw new ImportValidationError(`Maximum ${MAX_ROWS_PER_SHEET} lignes par feuille.`);
+    let totalCells = 0;
+    for (const r of rows) {
+      if (!Array.isArray(r)) continue;
+      for (const cell of r) {
+        const cellStr = String(cell ?? "");
+        if (cellStr.length > MAX_CELL_LENGTH) throw new ImportValidationError(`Cellule trop longue (max ${MAX_CELL_LENGTH}).`);
+        totalCells++;
+      }
+    }
+    if (totalCells > MAX_CELLS_TOTAL) throw new ImportValidationError(`Maximum ${MAX_CELLS_TOTAL} cellules au total.`);
     for (const r of rows) {
       const k = String(r[0] ?? "").trim().toLowerCase();
       if (k) map[k] = r[1];
@@ -400,14 +479,37 @@ export async function parseEditionFile(file: File): Promise<ImportedEdition> {
     return d;
   };
 
+  function estDateIsoCalendaireLocal(s: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const [y, m, d] = s.split("-").map(Number);
+    if (m < 1 || m > 12 || d < 1) return false;
+    const bissextile = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+    const joursMois = [31, bissextile ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return d <= joursMois[m - 1];
+  }
+
   const dateFromCell = (c: any): string => {
     if (c == null || c === "") return "";
+    // Date Excel native (numéro de série) → ISO UTC, puis validation calendaire.
     if (typeof c === "number" && c > 1) {
       const dt = new Date((c - 25569) * 86400000);
       const p = (n: number) => String(n).padStart(2, "0");
-      return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
+      const iso = `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
+      return estDateIsoCalendaireLocal(iso) ? iso : "";
     }
-    return String(c).trim();
+    const s = String(c).trim();
+    // ISO strict AAAA-MM-JJ
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return estDateIsoCalendaireLocal(s) ? s : "";
+    }
+    // Français strict JJ/MM/AAAA
+    const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) {
+      const iso = `${m[3]}-${m[2]}-${m[1]}`;
+      return estDateIsoCalendaireLocal(iso) ? iso : "";
+    }
+    // Tout autre format (y compris MDY ambigu) est refusé.
+    return "";
   };
 
   // Feuilles tableau "Participants" et "Sessions" (avec en-tete)
@@ -415,6 +517,7 @@ export async function parseEditionFile(file: File): Promise<ImportedEdition> {
     const ws = get(name);
     if (!ws) return [] as any[];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false }) as any[][];
+    if (rows.length > MAX_ROWS_PER_SHEET) throw new ImportValidationError(`Maximum ${MAX_ROWS_PER_SHEET} lignes par feuille.`);
     let hi = -1;
     for (let i = 0; i < Math.min(rows.length, 4); i++) {
       const r = rows[i].map((c) => String(c).toLowerCase());
@@ -424,11 +527,18 @@ export async function parseEditionFile(file: File): Promise<ImportedEdition> {
     const header = rows[hi].map((c) => String(c).toLowerCase());
     const idx = wanted.map((w) => header.findIndex((h) => h.includes(w)));
     const out: any[] = [];
+    let totalCells = 0;
     for (let i = hi + 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.every((c) => String(c ?? "").trim() === "")) continue;
+      for (const cell of row) {
+        const cellStr = String(cell ?? "");
+        if (cellStr.length > MAX_CELL_LENGTH) throw new ImportValidationError(`Cellule trop longue (max ${MAX_CELL_LENGTH}).`);
+        totalCells++;
+      }
       out.push(idx.map((j) => (j >= 0 ? row[j] : "")));
     }
+    if (totalCells > MAX_CELLS_TOTAL) throw new ImportValidationError(`Maximum ${MAX_CELLS_TOTAL} cellules au total.`);
     return out;
   }
 

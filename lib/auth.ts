@@ -12,6 +12,7 @@ export type Role = "ADMIN" | "LECTEUR";
 export type UtilisateurActuel = {
   id: string;
   email: string;
+  nom?: string | null;
   role: Role;
 };
 
@@ -47,7 +48,7 @@ export async function getUtilisateurActuel(): Promise<UtilisateurActuel | null> 
   const session = await lireSession();
   if (!session) return null;
   const r = await pool.query(
-    `SELECT id, email, role, actif, sessions_invalides_apres
+    `SELECT id, email, nom, role, actif, sessions_invalides_apres
      FROM "Utilisateur" WHERE id = $1`,
     [session.sub]
   );
@@ -59,7 +60,7 @@ export async function getUtilisateurActuel(): Promise<UtilisateurActuel | null> 
   if (session.iat < new Date(u.sessions_invalides_apres).getTime()) {
     return null;
   }
-  return { id: u.id, email: u.email, role: u.role as Role };
+  return { id: u.id, email: u.email, nom: u.nom, role: u.role as Role };
 }
 
 export function reponseNonAuthentifie(): NextResponse {

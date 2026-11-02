@@ -35,8 +35,16 @@ export function normalizeDate(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const s = raw.trim();
   if (!s) return null;
+  const joursDansMois = (y: number, mo: number): number => {
+    if (mo === 2) {
+      const bissextile = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+      return bissextile ? 29 : 28;
+    }
+    if ([4, 6, 9, 11].includes(mo)) return 30;
+    return 31;
+  };
   const valid = (y: number, mo: number, d: number) =>
-    y >= 1900 && y <= 2999 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
+    y >= 1900 && y <= 2999 && mo >= 1 && mo <= 12 && d >= 1 && d <= joursDansMois(y, mo);
 
   // AAAA/MM/JJ ou AAAA-MM-JJ
   let m = s.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/);
@@ -133,9 +141,16 @@ export function fmtMinToHeure(min: number | null | undefined): string {
 
 export function fmtDate(iso: string): string {
   if (!iso) return "";
-  const parts = iso.split("-");
-  if (parts.length !== 3) return iso;
+  // Tolère les dates ISO avec heure (ex. "2026-02-17T00:00:00.000Z") et les
+  // objets Date renvoyés par pg pour les colonnes DATE.
+  const v: any = iso;
+  const s =
+    v instanceof Date ? v.toISOString() : String(v);
+  const base = s.split("T")[0].trim();
+  const parts = base.split("-");
+  if (parts.length !== 3) return String(iso);
   const [y, m, d] = parts;
+  if (!/^\d{4}$/.test(y) || !/^\d{2}$/.test(m) || !/^\d{2}$/.test(d)) return String(iso);
   return d + "/" + m + "/" + y;
 }
 

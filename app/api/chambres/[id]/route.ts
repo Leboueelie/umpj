@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,7 +28,11 @@ export async function PUT(req: Request, { params }: Params) {
   if (acces instanceof NextResponse) return acces;
 
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const lieu = (body.lieu ?? "").toString().trim();
   const fardeau = (body.fardeau ?? "").toString().trim();
   const dirigeants = (body.dirigeants ?? "").toString().trim();
@@ -35,6 +41,15 @@ export async function PUT(req: Request, { params }: Params) {
 
   if (!lieu || !fardeau || !dirigeants)
     return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
+
+  if (lieu.length > 200)
+    return NextResponse.json({ error: "Lieu trop long (200 caractères maximum)." }, { status: 400 });
+  if (fardeau.length > 500)
+    return NextResponse.json({ error: "Fardeau trop long (500 caractères maximum)." }, { status: 400 });
+  if (dirigeants.length > 300)
+    return NextResponse.json({ error: "Dirigeants trop longs (300 caractères maximum)." }, { status: 400 });
+  if (contacts.length > 100)
+    return NextResponse.json({ error: "Contacts trop longs (100 caractères maximum)." }, { status: 400 });
 
   const r = await pool.query(
     `UPDATE "ChambreDePriere"

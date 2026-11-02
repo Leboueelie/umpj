@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET(req: Request) {
   const acces = await requireAdmin();
@@ -25,7 +27,11 @@ export async function POST(req: Request) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json().catch(() => ({}));
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const zoneId = (body.zoneId ?? "").toString();
   const lieu = (body.lieu ?? "").toString().trim();
   const fardeau = (body.fardeau ?? "").toString().trim();
@@ -34,6 +40,15 @@ export async function POST(req: Request) {
 
   if (!zoneId || !lieu || !fardeau || !dirigeants)
     return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
+
+  if (lieu.length > 200)
+    return NextResponse.json({ error: "Lieu trop long (200 caractères maximum)." }, { status: 400 });
+  if (fardeau.length > 500)
+    return NextResponse.json({ error: "Fardeau trop long (500 caractères maximum)." }, { status: 400 });
+  if (dirigeants.length > 300)
+    return NextResponse.json({ error: "Dirigeants trop longs (300 caractères maximum)." }, { status: 400 });
+  if (contacts.length > 100)
+    return NextResponse.json({ error: "Contacts trop longs (100 caractères maximum)." }, { status: 400 });
 
   const c = await pool.query(`SELECT id FROM "Zone" WHERE id = $1`, [zoneId]);
   if (c.rowCount === 0)

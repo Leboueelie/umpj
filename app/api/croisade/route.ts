@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { normalizeDate, normalizeHeure, tempsMisMin } from "@/lib/calc";
 import type { CroisadeJeunePriere } from "@/lib/types";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET() {
   const acces = await requireAdmin();
@@ -42,7 +44,11 @@ export async function POST(req: NextRequest) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json();
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const { date, heureDebut, heureFin, orateur, coordinateur } = body;
 
   if (!orateur?.trim() || !coordinateur?.trim() || !date || !heureDebut || !heureFin) {
@@ -51,6 +57,17 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  if (orateur.trim().length > 200)
+    return NextResponse.json(
+      { error: "L'orateur est trop long (200 caractères maximum)." },
+      { status: 400 }
+    );
+  if (coordinateur.trim().length > 200)
+    return NextResponse.json(
+      { error: "Le coordinateur est trop long (200 caractères maximum)." },
+      { status: 400 }
+    );
 
   const dateNorm = normalizeDate(date);
   if (!dateNorm) {
@@ -81,6 +98,13 @@ export async function POST(req: NextRequest) {
     counts[k] = v;
   }
   const effectif = ROLES.reduce((m, k) => m + counts[k], 0);
+
+  if (effectif <= 0) {
+    return NextResponse.json(
+      { error: "L'effectif total doit être strictement positif." },
+      { status: 400 }
+    );
+  }
 
   const id = randomUUID();
   await pool.query(

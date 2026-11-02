@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { tempsMisMin, normalizeDate, normalizeHeure } from "@/lib/calc";
 import type { NuitPriere } from "@/lib/types";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET(req: NextRequest) {
   const acces = await requireAdmin();
@@ -47,13 +49,24 @@ export async function POST(req: NextRequest) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json();
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const { categorie, nomCategorie, date, heureDebut, heureFin, participants } = body;
 
   // Validation de base
   if (!categorie || !date || !heureDebut || !heureFin || !participants) {
     return NextResponse.json(
       { error: "Tous les champs sont requis" },
+      { status: 400 }
+    );
+  }
+
+  if (!Number.isInteger(participants) || participants < 1) {
+    return NextResponse.json(
+      { error: "Le nombre de participants doit être un entier ≥ 1." },
       { status: 400 }
     );
   }
@@ -65,6 +78,12 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  if (nomCategorie && nomCategorie.trim().length > 100)
+    return NextResponse.json(
+      { error: "Le nom de la catégorie est trop long (100 caractères maximum)." },
+      { status: 400 }
+    );
 
   // Normalisation de la date
   const normalizedDate = normalizeDate(date);
@@ -91,6 +110,12 @@ export async function POST(req: NextRequest) {
   if (tempsMis === null) {
     return NextResponse.json(
       { error: "Impossible de calculer la durée" },
+      { status: 400 }
+    );
+  }
+  if (tempsMis <= 0) {
+    return NextResponse.json(
+      { error: "La durée doit être strictement positive." },
       { status: 400 }
     );
   }
@@ -135,6 +160,8 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "ID requis" }, { status: 400 });
   }
 
-  await pool.query(`DELETE FROM "NuitPriere" WHERE id = $1`, [id]);
+  const r = await pool.query(`DELETE FROM "NuitPriere" WHERE id = $1`, [id]);
+  if (r.rowCount === 0)
+    return NextResponse.json({ error: "Nuit introuvable." }, { status: 404 });
   return NextResponse.json({ success: true });
 }

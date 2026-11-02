@@ -379,15 +379,16 @@ async function rapportDocuments(
      GROUP BY 1 ORDER BY 1`,
     params
   );
-  const total = await pool.query(
-    `SELECT
-       (SELECT COUNT(*)::int FROM "Jeune") + (SELECT COUNT(*)::int FROM "Proclamation")
-       + (SELECT COUNT(*)::int FROM "ActionDeGrace") AS fichiers,
-       (SELECT COALESCE(SUM("taille"), 0)::int FROM "Jeune")
-       + (SELECT COALESCE(SUM("taille"), 0)::int FROM "Proclamation")
-       + (SELECT COALESCE(SUM("taille"), 0)::int FROM "ActionDeGrace") AS octets`,
-    []
-  );
+  // Totaux calculés sur les mêmes lignes filtrées par période que le détail,
+  // pour garantir la cohérence entre les indicateurs et le tableau affiché.
+  const totalFichiers =
+    jeune.rows.reduce((a, r) => a + (r.fichiers as number), 0) +
+    proclamation.rows.reduce((a, r) => a + (r.fichiers as number), 0) +
+    ag.rows.reduce((a, r) => a + (r.fichiers as number), 0);
+  const totalOctets =
+    jeune.rows.reduce((a, r) => a + (r.octets as number), 0) +
+    proclamation.rows.reduce((a, r) => a + (r.octets as number), 0) +
+    ag.rows.reduce((a, r) => a + (r.octets as number), 0);
   const lignes: (string | number)[][] = [
     ...jeune.rows.map((j) => ["Jeûne", j.categorie, j.fichiers, octetsVersLisible(j.octets)]),
     ...proclamation.rows.map((p) => [
@@ -409,16 +410,16 @@ async function rapportDocuments(
     source:
       "Tables Jeune, Proclamation, ActionDeGrace (période = date d'import createdAt).",
     periode,
-    volumesExamines: total.rows[0].fichiers,
+    volumesExamines: totalFichiers,
     indicateurs: [
       {
         libelle: "Fichiers enregistrés (toutes sources)",
-        valeur: fmtNombre(total.rows[0].fichiers),
+        valeur: fmtNombre(totalFichiers),
         definition: "Somme des fichiers des trois tables de documents.",
       },
       {
         libelle: "Taille cumulée",
-        valeur: octetsVersLisible(total.rows[0].octets),
+        valeur: octetsVersLisible(totalOctets),
         definition: "Somme des tailles en octets, convertie en unité lisible.",
       },
     ],

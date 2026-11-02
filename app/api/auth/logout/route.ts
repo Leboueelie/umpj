@@ -23,7 +23,7 @@ export async function POST() {
           `SELECT email FROM "Utilisateur" WHERE id = $1`,
           [session.sub]
         );
-        if (u.rowCount) await journaliser(u.rows[0].email, "deconnexion", session.sub, {});
+        if (u.rowCount) await journaliser(session.sub, "deconnexion", session.sub, {});
       } catch {
         // La déconnexion du client reste effective même si la base échoue.
       }

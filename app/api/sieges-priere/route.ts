@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { pool } from "@/lib/db";
 import { normalizeDate, normalizeHeure, tempsMisMin } from "@/lib/calc";
 import type { SiegePriere } from "@/lib/types";
+import { verifierTailleDeclaree, LIMITE_JSON } from "@/lib/body-limit";
+import { lireJsonBorne } from "@/lib/body-stream";
 
 export async function GET(req: NextRequest) {
   const acces = await requireAdmin();
@@ -38,7 +40,11 @@ export async function POST(req: NextRequest) {
   const acces = await requireAdmin();
   if (acces instanceof NextResponse) return acces;
 
-  const body = await req.json();
+  const lecture = await lireJsonBorne(req, LIMITE_JSON);
+  if (!lecture.ok) {
+    return NextResponse.json({ error: lecture.error }, { status: lecture.status });
+  }
+  const body = (lecture.body ?? {}) as any;
   const { nom, numeroEdition, jour, orateur, date, heureDebut, heureFin, participants } = body;
 
   if (!nom?.trim() || !numeroEdition || jour == null || jour === "" || !orateur?.trim() || !date || !heureDebut || !heureFin || !participants) {
@@ -47,6 +53,17 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  if (nom.trim().length > 200)
+    return NextResponse.json(
+      { error: "Le nom est trop long (200 caractères maximum)." },
+      { status: 400 }
+    );
+  if (orateur.trim().length > 200)
+    return NextResponse.json(
+      { error: "L'orateur est trop long (200 caractères maximum)." },
+      { status: 400 }
+    );
 
   const dateNorm = normalizeDate(date);
   const heureDebutNorm = normalizeHeure(heureDebut);
@@ -66,9 +83,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (numeroEdition <= 0) {
+  if (!Number.isInteger(numeroEdition) || numeroEdition <= 0) {
     return NextResponse.json(
-      { error: "Le numéro d'édition doit être supérieur à 0." },
+      { error: "Le numéro d'édition doit être un entier supérieur à 0." },
       { status: 400 }
     );
   }
@@ -80,9 +97,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (participants < 1) {
+  if (!Number.isInteger(participants) || participants < 1) {
     return NextResponse.json(
-      { error: "Le nombre de participants doit être ≥ 1." },
+      { error: "Le nombre de participants doit être un entier ≥ 1." },
       { status: 400 }
     );
   }
