@@ -439,6 +439,79 @@ CREATE INDEX IF NOT EXISTS "RapportGenere_modules_idx"
 CREATE INDEX IF NOT EXISTS "RapportGenere_periode_idx"
   ON "RapportGenere" ("periodeDu", "periodeAu");
 
+-- Productions et ventes de fiches (module FICHES).
+-- Catalogue dynamique : aucun produit n'est codé en dur dans l'application.
+CREATE TABLE IF NOT EXISTS "ProduitFiche" (
+  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "nom" TEXT NOT NULL,
+  "prixUnitaire" INTEGER NOT NULL,
+  "description" TEXT NOT NULL DEFAULT '',
+  "actif" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "ProduitFiche_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "ProduitFiche_prixUnitaire_check" CHECK ("prixUnitaire" >= 0)
+);
+
+DO $$ BEGIN
+  CREATE UNIQUE INDEX "ProduitFiche_nom_normalise_key"
+    ON "ProduitFiche" (lower(regexp_replace(trim("nom"), '\s+', ' ', 'g')));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Historique des productions (plusieurs enregistrements possibles par produit).
+CREATE TABLE IF NOT EXISTS "ProductionFiche" (
+  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "produitId" UUID NOT NULL,
+  "quantite" INTEGER NOT NULL,
+  "dateProduction" DATE NOT NULL,
+  "responsable" TEXT NOT NULL,
+  "observation" TEXT NOT NULL DEFAULT '',
+  "auteurId" UUID,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "ProductionFiche_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "ProductionFiche_quantite_check" CHECK ("quantite" > 0),
+  CONSTRAINT "ProductionFiche_produitId_fkey" FOREIGN KEY ("produitId")
+    REFERENCES "ProduitFiche" ("id") ON DELETE RESTRICT,
+  CONSTRAINT "ProductionFiche_auteurId_fkey" FOREIGN KEY ("auteurId")
+    REFERENCES "Utilisateur" ("id") ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS "ProductionFiche_date_idx"
+  ON "ProductionFiche" ("dateProduction" DESC, "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "ProductionFiche_produitId_idx"
+  ON "ProductionFiche" ("produitId");
+
+-- Historique des ventes : le prix appliqué est historisé (copie), le montant
+-- est calculé par l'application. Aucune contrainte de stock ni de vente.
+CREATE TABLE IF NOT EXISTS "VenteFiche" (
+  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "produitId" UUID NOT NULL,
+  "quantite" INTEGER NOT NULL,
+  "prixUnitaire" INTEGER NOT NULL,
+  "montant" INTEGER NOT NULL,
+  "dateVente" DATE NOT NULL,
+  "vendeur" TEXT NOT NULL,
+  "observation" TEXT NOT NULL DEFAULT '',
+  "auteurId" UUID,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "VenteFiche_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "VenteFiche_quantite_check" CHECK ("quantite" > 0),
+  CONSTRAINT "VenteFiche_prixUnitaire_check" CHECK ("prixUnitaire" >= 0),
+  CONSTRAINT "VenteFiche_montant_check" CHECK ("montant" >= 0),
+  CONSTRAINT "VenteFiche_produitId_fkey" FOREIGN KEY ("produitId")
+    REFERENCES "ProduitFiche" ("id") ON DELETE RESTRICT,
+  CONSTRAINT "VenteFiche_auteurId_fkey" FOREIGN KEY ("auteurId")
+    REFERENCES "Utilisateur" ("id") ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS "VenteFiche_date_idx"
+  ON "VenteFiche" ("dateVente" DESC, "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "VenteFiche_produitId_idx"
+  ON "VenteFiche" ("produitId");
+CREATE INDEX IF NOT EXISTS "VenteFiche_vendeur_idx"
+  ON "VenteFiche" ("vendeur");
+
 `;
 async function main() {
   await pool.query(sql);
@@ -459,6 +532,23 @@ async function main() {
   await pool.query(
     `INSERT INTO "ConfigFiche" ("cle","valeur") VALUES ('chambresAbidjan', 276), ('chambresInterieur', 216)
      ON CONFLICT ("cle") DO NOTHING`
+  );
+
+  // Produits de fiches (données initiales, jamais codées en dur dans l'app).
+  // Insertion idempotente : aucune écrasement d'un produit existant.
+  await pool.query(
+    `INSERT INTO "ProduitFiche" (id, nom, "prixUnitaire", description, actif)
+     SELECT gen_random_uuid(), v.nom, v.prix, '', true
+     FROM (VALUES
+       ('Ministère de Jeûne complet', 25),
+       ('But quinquennal – Chant', 25),
+       ('Hymne du But quinquennal', 50)
+     ) AS v(nom, prix)
+     WHERE NOT EXISTS (
+       SELECT 1 FROM "ProduitFiche" p
+       WHERE lower(regexp_replace(trim(p."nom"), '\\s+', ' ', 'g'))
+           = lower(regexp_replace(trim(v.nom), '\\s+', ' ', 'g'))
+     )`
   );
 
   const c = await pool.query(`SELECT count(*)::int AS n FROM "Cahier"`);

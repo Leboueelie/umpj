@@ -74,6 +74,16 @@ const GROUPES_MODULES: {
     ],
   },
   {
+    titre: "Productions & ventes",
+    items: [
+      {
+        href: "/fiches",
+        titre: "Fiches du ministère",
+        desc: "Productions, ventes, montants en FCFA et statistiques.",
+      },
+    ],
+  },
+  {
     titre: "Documents & publications",
     items: [
       {
