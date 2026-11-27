@@ -32,6 +32,7 @@ const PREFIXES_MODULES = [
   "/nuits-priere",
   "/sieges-de-priere",
   "/editions",
+  "/fiches",
   "/jeune",
   "/proclamation",
   "/actions-de-grace",
