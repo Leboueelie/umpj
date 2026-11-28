@@ -7,7 +7,19 @@
 //  - le prix appliqué est historisé dans la vente ;
 //  - aucune contrainte entre quantité produite et quantité vendue (pas de stock).
 
-import type { ProduitFiche, ProductionFiche, VenteFiche, EtatProduit } from "./fiches";
+import type {
+  ProduitFiche,
+  ProductionFiche,
+  VenteFiche,
+  EtatProduit,
+  CategorieDepense,
+} from "./fiches";
+
+/** Catégories autorisées pour une dépense de caisse. */
+export const CATEGORIES_DEPENSE: readonly CategorieDepense[] = [
+  "impression", "papier", "transport", "fournitures",
+  "communication", "entretien", "autres",
+];
 
 /** Collapse des espaces (trim + espaces successifs en un seul), casse conservée. */
 export function normaliserTexte(raw: unknown): string {
@@ -168,6 +180,36 @@ export function validerVente(input: {
 }
 
 /** Vérifie qu'une date est bien comprise dans une période optionnelle [du, au]. */
+export function validerDepense(input: {
+  motif?: unknown;
+  montant?: unknown;
+  dateDepense?: unknown;
+  responsable?: unknown;
+  categorie?: unknown;
+  observation?: unknown;
+}): string[] {
+  const erreurs: string[] = [];
+  const motif = normaliserTexte(input.motif);
+  if (!motif) erreurs.push("Le motif de la dépense est obligatoire.");
+  else if (motif.length > 200) erreurs.push("Motif trop long (200 caractères maximum).");
+  if (entierPositif(input.montant) === null) {
+    erreurs.push("Le montant doit être un entier strictement positif (FCFA).");
+  }
+  if (!dateIso(input.dateDepense)) erreurs.push("Date de dépense invalide (AAAA-MM-JJ attendu).");
+  const responsable = normaliserTexte(input.responsable);
+  if (!responsable) erreurs.push("Le responsable est obligatoire.");
+  else if (responsable.length > 120) erreurs.push("Responsable trop long (120 caractères maximum).");
+  if (
+    typeof input.categorie !== "string" ||
+    !CATEGORIES_DEPENSE.includes(input.categorie as CategorieDepense)
+  ) {
+    erreurs.push("Catégorie de dépense invalide.");
+  }
+  const observation = input.observation == null ? "" : normaliserTexte(input.observation);
+  if (observation.length > 500) erreurs.push("Observation trop longue (500 caractères maximum).");
+  return erreurs;
+}
+
 export function dansPeriode(date: string, du: string | null, au: string | null): boolean {
   if (du && date < du) return false;
   if (au && date > au) return false;
