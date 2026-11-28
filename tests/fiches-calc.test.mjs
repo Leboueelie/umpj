@@ -18,6 +18,9 @@ import {
   validerVente,
   dansPeriode,
   cumuls,
+  calculerReste,
+  calculerManque,
+  determinerEtat,
 } from "../lib/fiches-calc.ts";
 
 test("normaliserTexte : trim + collapse espaces", () => {
@@ -105,12 +108,46 @@ test("dansPeriode : bornes inclusives et filtres optionnels", () => {
   assert.equal(dansPeriode("2026-03-01", null, null), true);
 });
 
-test("cumuls : quantités et montant, sans notion de stock", () => {
+test("cumuls : quantités, restant et montant, sans notion de stock", () => {
   const productions = [{ quantite: 10 }, { quantite: 5 }];
   const ventes = [{ quantite: 3, montant: 75 }, { quantite: 2, montant: 50 }];
   assert.deepEqual(cumuls(productions, ventes), {
     quantiteProduite: 15,
     quantiteVendue: 5,
+    restant: 10,
     montantVentes: 125,
   });
+});
+
+test("calculerReste : positif, nul et négatif", () => {
+  assert.equal(calculerReste(10, 3), 7);
+  assert.equal(calculerReste(5, 5), 0);
+  assert.equal(calculerReste(2, 7), -5); // autorisé, jamais bloqué
+});
+
+test("calculerManque : objectif non défini = null", () => {
+  assert.equal(calculerManque(0, 7), null);
+  assert.equal(calculerManque(0, -3), null);
+});
+
+test("calculerManque : positif, nul et reste négatif", () => {
+  assert.equal(calculerManque(20, 7), 13);
+  assert.equal(calculerManque(10, 10), 0);
+  assert.equal(calculerManque(20, 15), 5);
+  assert.equal(calculerManque(10, -5), 15); // cible − reste négatif
+});
+
+test("determinerEtat : quatre états et priorité au dépassement", () => {
+  assert.equal(determinerEtat(0, 7, null), "objectif_non_defini");
+  assert.equal(determinerEtat(10, 10, 0), "objectif_atteint");
+  assert.equal(determinerEtat(20, 7, 13), "production_a_completer");
+  assert.equal(determinerEtat(20, -3, 23), "depassement_ventes"); // prioritaire
+  assert.equal(determinerEtat(0, -3, null), "depassement_ventes"); // prioritaire même sans objectif
+});
+
+test("validerProduit : quantité cible entière >= 0", () => {
+  assert.deepEqual(validerProduit({ nom: "Fiche", prixUnitaire: 25, quantiteCible: 0 }), []);
+  assert.deepEqual(validerProduit({ nom: "Fiche", prixUnitaire: 25, quantiteCible: 100 }), []);
+  assert.ok(validerProduit({ nom: "Fiche", prixUnitaire: 25, quantiteCible: -1 }).length > 0);
+  assert.ok(validerProduit({ nom: "Fiche", prixUnitaire: 25, quantiteCible: "2.5" }).length > 0);
 });

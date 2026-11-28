@@ -93,6 +93,36 @@ test("les vendeurs sont une saisie libre avec suggestions", () => {
   assert.ok(!vente.includes("Utilisateur"), "aucun compte utilisateur requis pour un vendeur");
 });
 
+test("cible : colonne exposée par toutes les routes produits", () => {
+  for (const f of [
+    "app/api/fiches/produits/route.ts",
+    "app/api/fiches/produits/[id]/route.ts",
+  ]) {
+    const s = src(f);
+    assert.ok(s.includes('"quantiteCible"'), `${f} : colonne quantiteCible absente`);
+  }
+  assert.ok(src("scripts/init-db.mjs").includes('"quantiteCible" INTEGER NOT NULL DEFAULT 0'));
+  assert.ok(src("scripts/migration-fiches-cible.sql").includes("ADD COLUMN IF NOT EXISTS"));
+});
+
+test("indicateurs : helper partagé utilisé par les deux routes", () => {
+  for (const f of ["app/api/fiches/stats/route.ts", "app/api/fiches/statistiques/route.ts"]) {
+    const s = src(f);
+    assert.ok(s.includes("aggregerParProduit"), `${f} : helper non utilisé`);
+    assert.ok(!s.includes('SUM(quantite)::int AS q FROM "ProductionFiche"'), `${f} : agrégat dupliqué`);
+  }
+  const stats = src("app/api/fiches/stats/route.ts");
+  assert.ok(stats.includes("produitsACompler"), "dashboard : liste des produits à compléter");
+  assert.ok(stats.includes("restant: totaux.restant"), "dashboard : restant global");
+});
+
+test("les ventes ne sont jamais bloquées par la cible ou le reste", () => {
+  const s = src("app/api/fiches/ventes/route.ts");
+  assert.ok(!s.includes("quantiteCible"), "aucune référence à la cible dans la route vente");
+  assert.ok(!s.includes("reste"), "aucun contrôle de reste dans la route vente");
+  assert.ok(!s.includes("manque"), "aucun contrôle de manque dans la route vente");
+});
+
 test("requêtes paramétrées (aucune valeur interpolée)", () => {
   assert.ok(tous.includes("$1"), "paramètres SQL");
   assert.ok(!tous.includes("`${produitId}`"), "pas d'interpolation de valeur");

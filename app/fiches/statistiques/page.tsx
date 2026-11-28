@@ -10,9 +10,16 @@ import type { FichesStatistiques, ProduitFiche } from "@/lib/fiches";
 const vide: FichesStatistiques = {
   periode: { du: null, au: null },
   produitsActifs: 0,
-  totaux: { quantiteProduite: 0, quantiteVendue: 0, montantVentes: 0 },
+  totaux: { quantiteProduite: 0, quantiteVendue: 0, restant: 0, montantVentes: 0 },
   parProduit: [],
   parVendeur: [],
+};
+
+const ETATS: Record<string, string> = {
+  objectif_non_defini: "Objectif non défini",
+  objectif_atteint: "Objectif atteint",
+  production_a_completer: "Production à compléter",
+  depassement_ventes: "Dépassement des ventes",
 };
 
 export default function FichesStatistiques() {
@@ -122,6 +129,12 @@ export default function FichesStatistiques() {
                 <div className="fiches-hero-metric"><b>{data.produitsActifs}</b><span>Produits actifs</span></div>
                 <div className="fiches-hero-metric"><b>{new Intl.NumberFormat("fr-FR").format(data.totaux.quantiteProduite)}</b><span>Fiches produites</span></div>
                 <div className="fiches-hero-metric"><b>{new Intl.NumberFormat("fr-FR").format(data.totaux.quantiteVendue)}</b><span>Fiches vendues</span></div>
+                <div className="fiches-hero-metric">
+                  <b className={data.totaux.restant < 0 ? "fiches-negatif" : ""}>
+                    {new Intl.NumberFormat("fr-FR").format(data.totaux.restant)}
+                  </b>
+                  <span>Fiches restantes</span>
+                </div>
               </div>
             </div>
           </section>
@@ -131,7 +144,10 @@ export default function FichesStatistiques() {
               <div>
                 <span className="fiches-eyebrow">Répartition</span>
                 <h2>Par produit</h2>
-                <p>Quantités produites, quantités vendues et montant réalisé, sans notion de stock.</p>
+                <p>
+                  Indicateurs calculés <strong>sur la sélection</strong> (produit, période, vendeur).
+                  Cible et reste : productions − ventes. Manque : aide à la décision, jamais une obligation.
+                </p>
               </div>
             </div>
             {data.parProduit.length === 0 ? (
@@ -147,8 +163,12 @@ export default function FichesStatistiques() {
                     <tr>
                       <th>Produit</th>
                       <th className="num">Prix unit.</th>
+                      <th className="num">Cible</th>
                       <th className="num">Produites</th>
                       <th className="num">Vendues</th>
+                      <th className="num">Reste</th>
+                      <th className="num">Manque</th>
+                      <th>État</th>
                       <th className="num">Montant</th>
                     </tr>
                   </thead>
@@ -162,8 +182,22 @@ export default function FichesStatistiques() {
                           </div>
                         </td>
                         <td className="num">{formaterFcfa(p.prixUnitaire)}</td>
+                        <td className="num">
+                          {p.quantiteCible > 0
+                            ? new Intl.NumberFormat("fr-FR").format(p.quantiteCible)
+                            : <span className="fiches-hint">—</span>}
+                        </td>
                         <td className="num">{new Intl.NumberFormat("fr-FR").format(p.quantiteProduite)}</td>
                         <td className="num">{new Intl.NumberFormat("fr-FR").format(p.quantiteVendue)}</td>
+                        <td className={`num${p.reste < 0 ? " fiches-negatif" : ""}`} title={p.reste < 0 ? "Ventes supérieures aux productions" : undefined}>
+                          {new Intl.NumberFormat("fr-FR").format(p.reste)}
+                        </td>
+                        <td className="num">
+                          {p.manque === null
+                            ? <span className="fiches-hint">Non défini</span>
+                            : new Intl.NumberFormat("fr-FR").format(p.manque)}
+                        </td>
+                        <td><span className={`fiches-etat ${p.etat}`}>{ETATS[p.etat] ?? p.etat}</span></td>
                         <td className="num money">{formaterFcfa(p.montantVentes)}</td>
                       </tr>
                     ))}

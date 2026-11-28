@@ -7,7 +7,7 @@
 //  - le prix appliqué est historisé dans la vente ;
 //  - aucune contrainte entre quantité produite et quantité vendue (pas de stock).
 
-import type { ProduitFiche, ProductionFiche, VenteFiche } from "./fiches";
+import type { ProduitFiche, ProductionFiche, VenteFiche, EtatProduit } from "./fiches";
 
 /** Collapse des espaces (trim + espaces successifs en un seul), casse conservée. */
 export function normaliserTexte(raw: unknown): string {
@@ -53,6 +53,32 @@ export function calculerMontant(quantite: number, prixUnitaire: number): number 
   return quantite * prixUnitaire;
 }
 
+/** Reste théorique = produites − vendues. Peut être négatif (autorisé). */
+export function calculerReste(quantiteProduite: number, quantiteVendue: number): number {
+  return quantiteProduite - quantiteVendue;
+}
+
+/**
+ * Manque à produire = max(0, cible − reste).
+ * `null` signifie « objectif non défini » (cible = 0) : le manque est indéterminé.
+ */
+export function calculerManque(quantiteCible: number, reste: number): number | null {
+  if (quantiteCible === 0) return null;
+  return Math.max(0, quantiteCible - reste);
+}
+
+/** État d'un produit. Le dépassement de ventes est prioritaire. */
+export function determinerEtat(
+  quantiteCible: number,
+  reste: number,
+  manque: number | null
+): EtatProduit {
+  if (reste < 0) return "depassement_ventes";
+  if (quantiteCible === 0) return "objectif_non_defini";
+  if (manque !== null && manque > 0) return "production_a_completer";
+  return "objectif_atteint";
+}
+
 /** Date reçue du serveur (DATE PostgreSQL sérialisé en ISO) → AAAA-MM-JJ. */
 export function dateAffichage(raw: unknown): string {
   if (typeof raw !== "string") return "—";
@@ -79,6 +105,7 @@ export function normaliserVendeur(raw: unknown): string {
 export function validerProduit(input: {
   nom?: unknown;
   prixUnitaire?: unknown;
+  quantiteCible?: unknown;
   description?: unknown;
 }): string[] {
   const erreurs: string[] = [];
@@ -87,6 +114,13 @@ export function validerProduit(input: {
   else if (nom.length > 150) erreurs.push("Nom du produit trop long (150 caractères maximum).");
   const prix = entierNonNegatif(input.prixUnitaire);
   if (prix === null) erreurs.push("Le prix unitaire doit être un nombre entier positif ou nul.");
+  if (
+    input.quantiteCible !== undefined &&
+    input.quantiteCible !== null &&
+    entierNonNegatif(input.quantiteCible) === null
+  ) {
+    erreurs.push("La quantité cible doit être un nombre entier positif ou nul (0 = non définie).");
+  }
   const description = input.description == null ? "" : normaliserTexte(input.description);
   if (description.length > 500) erreurs.push("Description trop longue (500 caractères maximum).");
   return erreurs;
@@ -142,9 +176,12 @@ export function dansPeriode(date: string, du: string | null, au: string | null):
 
 /** Cumuls simples, sans notion de stock. */
 export function cumuls(productions: ProductionFiche[], ventes: VenteFiche[]) {
+  const quantiteProduite = productions.reduce((s, p) => s + p.quantite, 0);
+  const quantiteVendue = ventes.reduce((s, v) => s + v.quantite, 0);
   return {
-    quantiteProduite: productions.reduce((s, p) => s + p.quantite, 0),
-    quantiteVendue: ventes.reduce((s, v) => s + v.quantite, 0),
+    quantiteProduite,
+    quantiteVendue,
+    restant: calculerReste(quantiteProduite, quantiteVendue),
     montantVentes: ventes.reduce((s, v) => s + v.montant, 0),
   };
 }

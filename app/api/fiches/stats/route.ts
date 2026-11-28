@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
+import { aggregerParProduit } from "@/lib/fiches-aggregats";
 
 /** Indicateurs du tableau de bord — sans filtre, lecture seule. */
 export async function GET() {
@@ -8,10 +9,14 @@ export async function GET() {
   if (acces instanceof NextResponse) return acces;
 
   const actifs = await pool.query(`SELECT COUNT(*)::int AS n FROM "ProduitFiche" WHERE actif`);
-  const prod = await pool.query(`SELECT COALESCE(SUM(quantite), 0)::int AS n FROM "ProductionFiche"`);
-  const vente = await pool.query(
-    `SELECT COALESCE(SUM(quantite), 0)::int AS q, COALESCE(SUM(montant), 0)::int AS m FROM "VenteFiche"`
-  );
+  const { totaux, parProduit } = await aggregerParProduit(pool);
+
+  // Produits nécessitant une nouvelle production : objectif défini et manque > 0.
+  // Le manque est un indicateur d'aide à la décision, jamais une obligation.
+  const produitsACompler = parProduit
+    .filter((p) => p.manque !== null && p.manque > 0)
+    .sort((a, b) => (b.manque ?? 0) - (a.manque ?? 0));
+
   const dernieresProductions = await pool.query(
     `SELECT pr.*, p."nom" AS "produitNom" FROM "ProductionFiche" pr
      JOIN "ProduitFiche" p ON p."id" = pr."produitId"
@@ -25,9 +30,11 @@ export async function GET() {
 
   return NextResponse.json({
     produitsActifs: actifs.rows[0].n,
-    quantiteProduite: prod.rows[0].n,
-    quantiteVendue: vente.rows[0].q,
-    montantVentes: vente.rows[0].m,
+    quantiteProduite: totaux.quantiteProduite,
+    quantiteVendue: totaux.quantiteVendue,
+    restant: totaux.restant,
+    montantVentes: totaux.montantVentes,
+    produitsACompler,
     dernieresProductions: dernieresProductions.rows,
     dernieresVentes: dernieresVentes.rows,
   });

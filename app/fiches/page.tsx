@@ -8,6 +8,13 @@ import { FichesHeader } from "@/components/fiches/FichesHeader";
 import { formaterFcfa, dateAffichage } from "@/lib/fiches-calc";
 import type { FichesIndicateurs, ProductionFiche, VenteFiche } from "@/lib/fiches";
 
+const ETATS: Record<string, string> = {
+  objectif_non_defini: "Objectif non défini",
+  objectif_atteint: "Objectif atteint",
+  production_a_completer: "Production à compléter",
+  depassement_ventes: "Dépassement des ventes",
+};
+
 function jour(iso: string) {
   const d = new Date(dateAffichage(iso) + "T12:00:00");
   return {
@@ -61,8 +68,60 @@ export default function FichesDashboard() {
                 <b>{new Intl.NumberFormat("fr-FR").format(data.quantiteVendue)}</b>
                 <span>Fiches vendues</span>
               </div>
+              <div className="fiches-hero-metric">
+                <b className={data.restant < 0 ? "fiches-negatif" : ""}>
+                  {new Intl.NumberFormat("fr-FR").format(data.restant)}
+                </b>
+                <span>Fiches restantes</span>
+              </div>
             </div>
           </section>
+
+          {data.produitsACompler.length > 0 && (
+            <section className="fiches-section" style={{ marginTop: 28 }}>
+              <div className="fiches-section-head">
+                <div>
+                  <span className="fiches-eyebrow">Aide à la décision</span>
+                  <h2>Production à compléter</h2>
+                  <p>
+                    {data.produitsACompler.length} produit(s) avec un objectif défini et un manque
+                    calculé sur les cumuls globaux. Indicateur informatif : aucune production n'est imposée.
+                  </p>
+                </div>
+                <Link href="/fiches/statistiques" className="btn secondary">Voir les statistiques</Link>
+              </div>
+              <div className="table-scroll fiches-table-wrap">
+                <table className="fiches-table">
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th className="num">Cible</th>
+                      <th className="num">Produites</th>
+                      <th className="num">Vendues</th>
+                      <th className="num">Reste</th>
+                      <th className="num">Manque</th>
+                      <th>État</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.produitsACompler.map((p) => (
+                      <tr key={p.produitId}>
+                        <td><strong>{p.nom}</strong></td>
+                        <td className="num">{new Intl.NumberFormat("fr-FR").format(p.quantiteCible)}</td>
+                        <td className="num">{new Intl.NumberFormat("fr-FR").format(p.quantiteProduite)}</td>
+                        <td className="num">{new Intl.NumberFormat("fr-FR").format(p.quantiteVendue)}</td>
+                        <td className={`num${p.reste < 0 ? " fiches-negatif" : ""}`}>
+                          {new Intl.NumberFormat("fr-FR").format(p.reste)}
+                        </td>
+                        <td className="num money">{p.manque === null ? "—" : new Intl.NumberFormat("fr-FR").format(p.manque)}</td>
+                        <td><span className={`fiches-etat ${p.etat}`}>{ETATS[p.etat] ?? p.etat}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           <div className="fiches-section" style={{ marginTop: 28 }}>
             <div className="fiches-section-head">
