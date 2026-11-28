@@ -9,6 +9,7 @@ const TABS = [
   { href: "/fiches/productions", label: "Productions", num: "03" },
   { href: "/fiches/ventes", label: "Ventes", num: "04" },
   { href: "/fiches/statistiques", label: "Statistiques", num: "05" },
+  { href: "/fiches/caisse", label: "Caisse", num: "06" },
 ];
 
 export function FichesHeader({

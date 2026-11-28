@@ -38,6 +38,51 @@ export interface VenteFiche {
   createdAt: string;
 }
 
+/** Catégories autorisées pour une dépense de caisse. */
+export type CategorieDepense =
+  | "impression"
+  | "papier"
+  | "transport"
+  | "fournitures"
+  | "communication"
+  | "entretien"
+  | "autres";
+
+/** Dépense prélevée sur le solde général — jamais rattachée à un produit. */
+export interface DepenseFiche {
+  id: string;
+  motif: string;
+  montant: number; // entier > 0, FCFA
+  dateDepense: string; // YYYY-MM-DD
+  responsable: string;
+  categorie: CategorieDepense;
+  observation: string;
+  auteurId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Totaux financiers de la caisse — dérivés des ventes et dépenses réelles. */
+export interface TotauxCaisse {
+  totalVentes: number;
+  totalDepenses: number;
+  soldeDisponible: number;
+}
+
+/** Ligne de l'historique chronologique de la caisse. */
+export interface MouvementCaisse {
+  id: string;
+  type: "vente" | "depense";
+  date: string; // YYYY-MM-DD
+  motif: string;
+  entree: number; // FCFA (vente)
+  sortie: number; // FCFA (dépense)
+  soldeApres: number; // FCFA, jamais négatif
+  responsable: string;
+  createdAt: string;
+  referenceId: string;
+}
+
 /** États d'un produit au regard de sa cible (priorité au dépassement de ventes). */
 export type EtatProduit =
   | "objectif_non_defini"
@@ -66,8 +111,10 @@ export interface FichesIndicateurs {
   restant: number;
   montantVentes: number;
   produitsACompler: SuiviProduit[];
+  caisse: TotauxCaisse;
   dernieresProductions: ProductionFiche[];
   dernieresVentes: VenteFiche[];
+  dernieresDepenses: DepenseFiche[];
 }
 
 export interface FichesStatistiques {
@@ -80,6 +127,7 @@ export interface FichesStatistiques {
     montantVentes: number;
   };
   parProduit: SuiviProduit[];
+  caisse: TotauxCaisse;
   parVendeur: Array<{
     vendeur: string;
     quantiteVendue: number;

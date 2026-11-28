@@ -11,6 +11,7 @@ const vide: FichesStatistiques = {
   periode: { du: null, au: null },
   produitsActifs: 0,
   totaux: { quantiteProduite: 0, quantiteVendue: 0, restant: 0, montantVentes: 0 },
+  caisse: { totalVentes: 0, totalDepenses: 0, soldeDisponible: 0 },
   parProduit: [],
   parVendeur: [],
 };

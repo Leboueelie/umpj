@@ -19,7 +19,7 @@ type Form = {
 const aujourdHui = () => new Date().toISOString().slice(0, 10);
 
 export default function FichesVentes() {
-  const { toast, node } = useFeedback();
+  const { confirm, toast, node } = useFeedback();
   const [produits, setProduits] = useState<ProduitFiche[]>([]);
   const [lignes, setLignes] = useState<VenteFiche[]>([]);
   const [vendeurs, setVendeurs] = useState<string[]>([]);
@@ -30,6 +30,7 @@ export default function FichesVentes() {
     produitId: "", quantite: "", prixUnitaire: "", dateVente: aujourdHui(), vendeur: "", observation: "",
   });
   const [f, setF] = useState({ produitId: "", vendeur: "", du: "", au: "" });
+  const [editId, setEditId] = useState<string | null>(null);
 
   const charger = (filtres = f) => {
     const params = new URLSearchParams();
@@ -82,6 +83,35 @@ export default function FichesVentes() {
     ? calculerMontant(quantite, prix)
     : 0;
 
+  const ouvrirVente = (v: VenteFiche) => {
+    setEditId(v.id);
+    setForm({
+      produitId: v.produitId,
+      quantite: String(v.quantite),
+      prixUnitaire: String(v.prixUnitaire),
+      dateVente: dateAffichage(v.dateVente),
+      vendeur: v.vendeur,
+      observation: v.observation,
+    });
+    setErreurs([]);
+  };
+
+  const reinitialiser = () => {
+    setEditId(null);
+    setForm({ produitId: produits[0]?.id || "", quantite: "", prixUnitaire: produits[0] ? String(produits[0].prixUnitaire) : "", dateVente: aujourdHui(), vendeur: "", observation: "" });
+    setErreurs([]);
+  };
+
+  const supprimerVente = async (v: VenteFiche) => {
+    const ok = await confirm(`Supprimer la vente de ${v.quantite} fiches (${formaterFcfa(v.montant)}) ? Le solde sera recalculé.`, "Supprimer");
+    if (!ok) return;
+    try {
+      await api(`/api/fiches/ventes/${v.id}`, { method: "DELETE" });
+      toast("Vente supprimée.", "success");
+      charger();
+    } catch (e: any) { toast(e.message || "Suppression refusée.", "error"); }
+  };
+
   const soumettre = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validerVente(form);
@@ -89,9 +119,16 @@ export default function FichesVentes() {
     if (err.length) return;
     setSauvegarde(true);
     try {
-      await api("/api/fiches/ventes", { method: "POST", body: JSON.stringify(form) });
-      toast("Vente enregistrée.", "success");
-      setForm((s) => ({ ...s, quantite: "", observation: "" }));
+      if (editId) {
+        const ok = await confirm("Valider la correction de cette vente ? Le solde sera recalculé.", "Confirmer");
+        if (!ok) return;
+        await api(`/api/fiches/ventes/${editId}`, { method: "PUT", body: JSON.stringify(form) });
+        toast("Vente modifiée.", "success");
+      } else {
+        await api("/api/fiches/ventes", { method: "POST", body: JSON.stringify(form) });
+        toast("Vente enregistrée.", "success");
+      }
+      reinitialiser();
       charger();
       api<string[]>("/api/fiches/vendeurs").then(setVendeurs).catch(() => {});
     } catch (e: any) {
@@ -115,7 +152,7 @@ export default function FichesVentes() {
         <div className="fiches-section-head">
           <div>
             <span className="fiches-eyebrow">Saisie</span>
-            <h2>Nouvelle vente</h2>
+            <h2>{editId ? "Modifier la vente" : "Nouvelle vente"}</h2>
             <p>Le vendeur est un membre de la famille ministérielle : aucun compte n'est nécessaire.</p>
           </div>
         </div>
@@ -164,8 +201,9 @@ export default function FichesVentes() {
           {erreurs.length > 0 && <p className="err">{erreurs.join(" · ")}</p>}
           <div className="fiches-form-actions">
             <button className="btn" type="submit" disabled={sauvegarde}>
-              {sauvegarde ? "Enregistrement…" : "Enregistrer la vente"}
+              {sauvegarde ? "Enregistrement…" : editId ? "Enregistrer la modification" : "Enregistrer la vente"}
             </button>
+            {editId && <button className="btn secondary" type="button" onClick={reinitialiser}>Annuler</button>}
             <button className="btn secondary" type="button" onClick={() => charger()}>Actualiser</button>
           </div>
         </form>
@@ -231,6 +269,7 @@ export default function FichesVentes() {
                   <th className="num">Montant</th>
                   <th>Vendeur</th>
                   <th>Observation</th>
+                  <th className="num">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,6 +282,12 @@ export default function FichesVentes() {
                     <td className="num money">{formaterFcfa(v.montant)}</td>
                     <td>{normaliserTexte(v.vendeur)}</td>
                     <td>{v.observation ? <span className="sub" style={{ marginTop: 0 }}>{v.observation}</span> : "—"}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn secondary" type="button" onClick={() => ouvrirVente(v)}>Modifier</button>
+                        <button className="btn danger" type="button" onClick={() => supprimerVente(v)}>Supprimer</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

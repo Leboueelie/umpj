@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { aggregerParProduit } from "@/lib/fiches-aggregats";
+import { lireTotauxFinanciers } from "@/lib/fiches-caisse";
 
 /** Indicateurs du tableau de bord — sans filtre, lecture seule. */
 export async function GET() {
@@ -10,6 +11,7 @@ export async function GET() {
 
   const actifs = await pool.query(`SELECT COUNT(*)::int AS n FROM "ProduitFiche" WHERE actif`);
   const { totaux, parProduit } = await aggregerParProduit(pool);
+  const caisse = await lireTotauxFinanciers(pool);
 
   // Produits nécessitant une nouvelle production : objectif défini et manque > 0.
   // Le manque est un indicateur d'aide à la décision, jamais une obligation.
@@ -27,6 +29,9 @@ export async function GET() {
      JOIN "ProduitFiche" p ON p."id" = v."produitId"
      ORDER BY v."dateVente" DESC, v."createdAt" DESC LIMIT 5`
   );
+  const dernieresDepenses = await pool.query(
+    `SELECT * FROM "DepenseFiche" ORDER BY "dateDepense" DESC, "createdAt" DESC LIMIT 5`
+  );
 
   return NextResponse.json({
     produitsActifs: actifs.rows[0].n,
@@ -35,7 +40,9 @@ export async function GET() {
     restant: totaux.restant,
     montantVentes: totaux.montantVentes,
     produitsACompler,
+    caisse,
     dernieresProductions: dernieresProductions.rows,
     dernieresVentes: dernieresVentes.rows,
+    dernieresDepenses: dernieresDepenses.rows,
   });
 }

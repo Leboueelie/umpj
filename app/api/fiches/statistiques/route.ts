@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { aggregerParProduit, lireFiltres } from "@/lib/fiches-aggregats";
+import { lireTotauxFinanciers } from "@/lib/fiches-caisse";
 
 /** Statistiques filtrables par produit, période et vendeur — lecture seule. */
 export async function GET(req: Request) {
@@ -12,6 +13,7 @@ export async function GET(req: Request) {
   const { totaux, parProduit } = await aggregerParProduit(pool, filtres);
 
   const actifs = await pool.query(`SELECT COUNT(*)::int AS n FROM "ProduitFiche" WHERE actif`);
+  const caisse = await lireTotauxFinanciers(pool);
 
   // Le filtre vendeur ne s'applique qu'aux ventes (aucune contrainte de stock).
   const paramsVendeur: any[] = [];
@@ -33,6 +35,7 @@ export async function GET(req: Request) {
     produitsActifs: actifs.rows[0].n,
     totaux,
     parProduit,
+    caisse,
     parVendeur: parVendeur.rows,
   });
 }

@@ -77,6 +77,51 @@ export default function FichesDashboard() {
             </div>
           </section>
 
+          <section className="fiches-section" style={{ marginTop: 28 }}>
+            <div className="fiches-section-head">
+              <div>
+                <span className="fiches-eyebrow">Caisse</span>
+                <h2>Argent disponible</h2>
+                <p>Ventes enregistrées moins dépenses — aucun objectif de production n'intervient.</p>
+              </div>
+              <Link href="/fiches/caisse" className="btn secondary">Ouvrir la caisse</Link>
+            </div>
+            <div className="fiches-caisse-strip">
+              <div className="fiches-caisse-item">
+                <span>Total des ventes</span>
+                <strong>{formaterFcfa(data.caisse.totalVentes)}</strong>
+              </div>
+              <div className="fiches-caisse-item">
+                <span>Total des dépenses</span>
+                <strong>{formaterFcfa(data.caisse.totalDepenses)}</strong>
+              </div>
+              <div className="fiches-caisse-item principal">
+                <span>Solde disponible</span>
+                <strong>{formaterFcfa(data.caisse.soldeDisponible)}</strong>
+              </div>
+            </div>
+            {data.dernieresDepenses.length > 0 && (
+              <div className="fiches-panel" style={{ marginTop: 14 }}>
+                <div className="fiches-panel-head"><h3>Dernières dépenses</h3><Link href="/fiches/caisse">Historique →</Link></div>
+                <ul className="fiches-activity">
+                  {data.dernieresDepenses.map((d) => {
+                    const dt = jour(d.dateDepense);
+                    return (
+                      <li key={d.id}>
+                        <span className="fiches-act-date"><b>{dt.j}</b><span>{dt.m}</span></span>
+                        <span className="fiches-act-main">
+                          <strong>{d.motif}</strong>
+                          <small>{d.responsable} · {d.categorie}</small>
+                        </span>
+                        <span className="fiches-act-val">−{formaterFcfa(d.montant)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </section>
+
           {data.produitsACompler.length > 0 && (
             <section className="fiches-section" style={{ marginTop: 28 }}>
               <div className="fiches-section-head">
