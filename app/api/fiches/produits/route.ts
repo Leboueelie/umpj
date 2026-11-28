@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   if (acces instanceof NextResponse) return acces;
 
   const actif = new URL(req.url).searchParams.get("actif");
-  let query = `SELECT id, nom, "prixUnitaire", description, actif, "createdAt", "updatedAt"
+  let query = `SELECT id, nom, "prixUnitaire", "quantiteCible", description, actif, "createdAt", "updatedAt"
                FROM "ProduitFiche"`;
   if (actif === "1" || actif === "0") {
     query += ` WHERE actif = ${actif === "1" ? "true" : "false"}`;
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
   const erreurs = validerProduit({
     nom: b?.nom,
     prixUnitaire: b?.prixUnitaire,
+    quantiteCible: b?.quantiteCible ?? 0,
     description: b?.description,
   });
   if (erreurs.length) {
@@ -43,14 +44,15 @@ export async function POST(req: Request) {
 
   const nom = normaliserTexte(b.nom);
   const prixUnitaire = Number(String(b.prixUnitaire).trim());
+  const quantiteCible = b?.quantiteCible == null ? 0 : Number(String(b.quantiteCible).trim());
   const description = b?.description == null ? "" : normaliserTexte(b.description);
 
   try {
     const r = await pool.query(
-      `INSERT INTO "ProduitFiche" (id, nom, "prixUnitaire", description, actif)
-       VALUES ($1, $2, $3, $4, true)
-       RETURNING id, nom, "prixUnitaire", description, actif, "createdAt", "updatedAt"`,
-      [crypto.randomUUID(), nom, prixUnitaire, description]
+      `INSERT INTO "ProduitFiche" (id, nom, "prixUnitaire", "quantiteCible", description, actif)
+       VALUES ($1, $2, $3, $4, $5, true)
+       RETURNING id, nom, "prixUnitaire", "quantiteCible", description, actif, "createdAt", "updatedAt"`,
+      [crypto.randomUUID(), nom, prixUnitaire, quantiteCible, description]
     );
     return NextResponse.json(r.rows[0], { status: 201 });
   } catch (e: any) {

@@ -7,7 +7,7 @@ import { FichesHeader } from "@/components/fiches/FichesHeader";
 import { formaterFcfa, validerProduit } from "@/lib/fiches-calc";
 import type { ProduitFiche } from "@/lib/fiches";
 
-type Form = { nom: string; prixUnitaire: string; description: string };
+type Form = { nom: string; prixUnitaire: string; quantiteCible: string; description: string };
 
 export default function FichesProduits() {
   const { confirm, toast, node } = useFeedback();
@@ -31,8 +31,8 @@ export default function FichesProduits() {
   const ouvrir = (p?: ProduitFiche) => {
     setEditId(p?.id ?? null);
     setForm(p
-      ? { nom: p.nom, prixUnitaire: String(p.prixUnitaire), description: p.description }
-      : { nom: "", prixUnitaire: "", description: "" });
+      ? { nom: p.nom, prixUnitaire: String(p.prixUnitaire), quantiteCible: String(p.quantiteCible ?? 0), description: p.description }
+      : { nom: "", prixUnitaire: "", quantiteCible: "", description: "" });
     setErreurs([]);
   };
 
@@ -113,6 +113,11 @@ export default function FichesProduits() {
                 <input id="fp-prix" type="number" min="0" step="1" value={form.prixUnitaire} onChange={(e) => maj("prixUnitaire", e.target.value)} placeholder="25" />
               </div>
               <div className="fiches-field">
+                <label htmlFor="fp-cible">Quantité cible</label>
+                <input id="fp-cible" type="number" min="0" step="1" value={form.quantiteCible} onChange={(e) => maj("quantiteCible", e.target.value)} placeholder="0" />
+                <span className="fiches-hint">0 = objectif non défini. Modifiable à tout moment.</span>
+              </div>
+              <div className="fiches-field">
                 <label htmlFor="fp-desc">Description (facultative)</label>
                 <input id="fp-desc" value={form.description} onChange={(e) => maj("description", e.target.value)} placeholder="Précision utile" />
               </div>
@@ -142,6 +147,7 @@ export default function FichesProduits() {
                 <tr>
                   <th>Produit</th>
                   <th className="num">Prix unitaire</th>
+                  <th className="num">Cible</th>
                   <th>Statut</th>
                   <th className="num">Actions</th>
                 </tr>
@@ -154,6 +160,11 @@ export default function FichesProduits() {
                       {p.description && <span className="sub">{p.description}</span>}
                     </td>
                     <td className="num">{formaterFcfa(p.prixUnitaire)}</td>
+                    <td className="num">
+                      {p.quantiteCible > 0
+                        ? new Intl.NumberFormat("fr-FR").format(p.quantiteCible)
+                        : <span className="fiches-hint">Non définie</span>}
+                    </td>
                     <td>
                       <span className={`fiches-badge ${p.actif ? "on" : "off"}`}>
                         {p.actif ? "Actif" : "Inactif"}

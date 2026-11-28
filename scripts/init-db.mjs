@@ -445,12 +445,14 @@ CREATE TABLE IF NOT EXISTS "ProduitFiche" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
   "nom" TEXT NOT NULL,
   "prixUnitaire" INTEGER NOT NULL,
+  "quantiteCible" INTEGER NOT NULL DEFAULT 0,
   "description" TEXT NOT NULL DEFAULT '',
   "actif" BOOLEAN NOT NULL DEFAULT true,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT "ProduitFiche_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "ProduitFiche_prixUnitaire_check" CHECK ("prixUnitaire" >= 0)
+  CONSTRAINT "ProduitFiche_prixUnitaire_check" CHECK ("prixUnitaire" >= 0),
+  CONSTRAINT "ProduitFiche_quantiteCible_check" CHECK ("quantiteCible" >= 0)
 );
 
 DO $$ BEGIN

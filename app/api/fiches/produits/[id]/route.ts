@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: Params) {
   if (acces instanceof NextResponse) return acces;
   const { id } = await params;
   const r = await pool.query(
-    `SELECT id, nom, "prixUnitaire", description, actif, "createdAt", "updatedAt"
+    `SELECT id, nom, "prixUnitaire", "quantiteCible", description, actif, "createdAt", "updatedAt"
      FROM "ProduitFiche" WHERE id = $1`,
     [id]
   );
@@ -36,6 +36,7 @@ export async function PUT(req: Request, { params }: Params) {
   const erreurs = validerProduit({
     nom: b?.nom,
     prixUnitaire: b?.prixUnitaire,
+    quantiteCible: b?.quantiteCible ?? 0,
     description: b?.description,
   });
   if (erreurs.length) {
@@ -44,15 +45,16 @@ export async function PUT(req: Request, { params }: Params) {
 
   const nom = normaliserTexte(b.nom);
   const prixUnitaire = Number(String(b.prixUnitaire).trim());
+  const quantiteCible = b?.quantiteCible == null ? 0 : Number(String(b.quantiteCible).trim());
   const description = b?.description == null ? "" : normaliserTexte(b.description);
 
   try {
     const r = await pool.query(
       `UPDATE "ProduitFiche"
-       SET nom = $2, "prixUnitaire" = $3, description = $4, "updatedAt" = now()
+       SET nom = $2, "prixUnitaire" = $3, "quantiteCible" = $4, description = $5, "updatedAt" = now()
        WHERE id = $1
-       RETURNING id, nom, "prixUnitaire", description, actif, "createdAt", "updatedAt"`,
-      [id, nom, prixUnitaire, description]
+       RETURNING id, nom, "prixUnitaire", "quantiteCible", description, actif, "createdAt", "updatedAt"`,
+      [id, nom, prixUnitaire, quantiteCible, description]
     );
     if (!r.rowCount) return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });
     return NextResponse.json(r.rows[0]);
@@ -85,7 +87,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const r = await pool.query(
     `UPDATE "ProduitFiche" SET actif = $2, "updatedAt" = now() WHERE id = $1
-     RETURNING id, nom, "prixUnitaire", description, actif, "createdAt", "updatedAt"`,
+     RETURNING id, nom, "prixUnitaire", "quantiteCible", description, actif, "createdAt", "updatedAt"`,
     [id, b.actif]
   );
   if (!r.rowCount) return NextResponse.json({ error: "Produit introuvable." }, { status: 404 });

@@ -491,6 +491,22 @@
 }
 .fiches-note b { color: var(--f-ink); }
 
+/* ---- Indicateurs cible / reste / manque ---- */
+.fiches-negatif { color: var(--f-bad) !important; }
+.fiches-etat {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fiches-etat.objectif_non_defini { background: #f1f2f6; color: var(--f-muted); }
+.fiches-etat.objectif_atteint { background: #e7f5ec; color: var(--f-good); }
+.fiches-etat.production_a_completer { background: #fdf3e0; color: var(--f-accent-deep); }
+.fiches-etat.depassement_ventes { background: #fbeaea; color: var(--f-bad); }
+.fiches-hero-metric b.fiches-negatif { color: #ffb4b4 !important; }
+
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   .fiches-cols { grid-template-columns: 1fr; }
@@ -500,7 +516,9 @@
   .fiches-tabs { gap: 0; margin: 16px -4px 22px; }
   .fiches-tab { padding: 10px 12px; font-size: 0.78rem; }
   .fiches-hero { padding: 22px 20px; }
-  .fiches-hero-metric { padding: 8px 14px; }
+  .fiches-hero-metric { flex: 1 1 120px; padding: 8px 12px; }
+  .fiches-hero-metric:first-child { padding-left: 0; }
+  .fiches-etat { white-space: normal; }
 }
 @media (max-width: 600px) {
   .fiches-grid, .fiches-grid.two { grid-template-columns: 1fr; }

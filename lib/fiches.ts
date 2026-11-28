@@ -5,6 +5,7 @@ export interface ProduitFiche {
   id: string;
   nom: string;
   prixUnitaire: number; // entier, FCFA
+  quantiteCible: number; // entier, 0 = objectif non défini
   description: string;
   actif: boolean;
   createdAt: string;
@@ -37,11 +38,34 @@ export interface VenteFiche {
   createdAt: string;
 }
 
+/** États d'un produit au regard de sa cible (priorité au dépassement de ventes). */
+export type EtatProduit =
+  | "objectif_non_defini"
+  | "objectif_atteint"
+  | "production_a_completer"
+  | "depassement_ventes";
+
+/** Indicateurs dérivés d'un produit — jamais stockés, toujours recalculés. */
+export interface SuiviProduit {
+  produitId: string;
+  nom: string;
+  prixUnitaire: number;
+  quantiteCible: number;
+  quantiteProduite: number;
+  quantiteVendue: number;
+  reste: number; // produites − vendues, peut être négatif
+  manque: number | null; // null si aucun objectif défini (cible = 0)
+  montantVentes: number;
+  etat: EtatProduit;
+}
+
 export interface FichesIndicateurs {
   produitsActifs: number;
   quantiteProduite: number;
   quantiteVendue: number;
+  restant: number;
   montantVentes: number;
+  produitsACompler: SuiviProduit[];
   dernieresProductions: ProductionFiche[];
   dernieresVentes: VenteFiche[];
 }
@@ -52,16 +76,10 @@ export interface FichesStatistiques {
   totaux: {
     quantiteProduite: number;
     quantiteVendue: number;
+    restant: number;
     montantVentes: number;
   };
-  parProduit: Array<{
-    produitId: string;
-    nom: string;
-    prixUnitaire: number;
-    quantiteProduite: number;
-    quantiteVendue: number;
-    montantVentes: number;
-  }>;
+  parProduit: SuiviProduit[];
   parVendeur: Array<{
     vendeur: string;
     quantiteVendue: number;
